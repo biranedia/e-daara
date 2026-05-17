@@ -6,7 +6,8 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne } = require('../config/database');
+const { query, queryOne, pool } = require('../config/database');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -85,27 +86,51 @@ router.post(
         });
       }
 
-      const slug = titre
+      const baseSlug = titre
         .toLowerCase()
         .replace(/\s+/g, '-')
-        .replace(/[^\w\-]/g, '');
+        .replace(/[^\w\-]/g, '')
+        .substring(0, 200);
 
-      const [result] = await query(
-        `INSERT INTO courses 
-         (titre, slug, description, objectifs, prerequis, niveau, duree,
-          category_id, instructor_id, langue, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW(), NOW())`,
-        [titre, slug, description, objectifs, prerequis, niveau, duree, category_id, req.user.id, langue]
-      );
+      const toParam = (v) => (v === undefined ? null : v);
 
-      await logAudit(req.user.id, 'CREATE_COURSE', 'courses', result.insertId, req.ip, req.headers['user-agent']);
+      // Try to insert with unique slug; on duplicate, append suffix and retry
+      let finalSlug = baseSlug || `course-${Date.now()}`;
+      let insertResult = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const [result] = await pool.execute(
+            `INSERT INTO courses 
+             (titre, slug, description, objectifs, prerequis, niveau, duree,
+              category_id, instructor_id, langue, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NOW(), NOW())`,
+            [toParam(titre), toParam(finalSlug), toParam(description), toParam(objectifs), toParam(prerequis), toParam(niveau), toParam(duree), toParam(category_id), toParam(req.user.id), toParam(langue)]
+          );
+          insertResult = result;
+          break;
+        } catch (err) {
+          // If duplicate slug, adjust and retry
+          if (err && err.code === 'ER_DUP_ENTRY' && /slug/.test(err.message)) {
+            finalSlug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}-${Date.now().toString().slice(-4)}`;
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!insertResult) {
+        throw new Error('Unable to create course after multiple attempts (slug conflict)');
+      }
+
+      await logAudit(req.user.id, 'CREATE_COURSE', 'cours', 'courses', insertResult.insertId, req.ip, req.headers['user-agent']);
 
       res.status(201).json({
         success: true,
         message: 'Cours créé avec succès',
-        data: { courseId: result.insertId }
+        data: { courseId: insertResult.insertId }
       });
     } catch (error) {
+      logger.error('Erreur création cours:', error);
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la création du cours'
@@ -228,7 +253,7 @@ router.put('/:id', verifyJWT, loadRBACContext, async (req, res) => {
       params
     );
 
-    await logAudit(req.user.id, 'UPDATE_COURSE', 'courses', req.params.id, req.ip, req.headers['user-agent']);
+    await logAudit(req.user.id, 'UPDATE_COURSE', 'cours', 'courses', req.params.id, req.ip, req.headers['user-agent']);
 
     res.json({
       success: true,
@@ -277,7 +302,7 @@ router.delete('/:id', verifyJWT, loadRBACContext, async (req, res) => {
       [req.params.id]
     );
 
-    await logAudit(req.user.id, 'DELETE_COURSE', 'courses', req.params.id, req.ip, req.headers['user-agent']);
+    await logAudit(req.user.id, 'DELETE_COURSE', 'cours', 'courses', req.params.id, req.ip, req.headers['user-agent']);
 
     res.json({
       success: true,

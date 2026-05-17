@@ -100,7 +100,8 @@ router.get('/courses', optionalJWT, async (req, res) => {
       countParams.push(searchTerm, searchTerm);
     }
 
-    const [{ total }] = await query(countSql, countParams);
+    const countResult = await query(countSql, countParams);
+    const total = countResult[0]?.total || 0;
 
     res.json({
       success: true,

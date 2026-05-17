@@ -99,7 +99,7 @@ router.put('/users/:id/status', verifyJWT, loadRBACContext, requireRole('admin')
       [status, req.params.id]
     );
 
-    await logAudit(req.user.id, 'UPDATE_USER_STATUS', 'users', req.params.id, req.ip, req.headers['user-agent']);
+    await logAudit(req.user.id, 'UPDATE_USER_STATUS', 'admin', 'users', req.params.id, req.ip, req.headers['user-agent']);
 
     res.json({
       success: true,
@@ -179,7 +179,7 @@ router.post('/courses/:id/validate', verifyJWT, loadRBACContext, requireRole('ad
       [req.params.id, req.user.id, decision, commentaire]
     );
 
-    await logAudit(req.user.id, `VALIDATE_COURSE_${decision}`, 'courses', req.params.id, req.ip, req.headers['user-agent']);
+    await logAudit(req.user.id, `VALIDATE_COURSE_${decision}`, 'admin', 'courses', req.params.id, req.ip, req.headers['user-agent']);
 
     res.json({
       success: true,
@@ -205,8 +205,8 @@ router.post('/courses/:id/validate', verifyJWT, loadRBACContext, requireRole('ad
 router.get('/audit-logs', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
   try {
     const logs = await query(
-      `SELECT l.id, l.user_id, u.email, l.action, l.resource, l.resource_id,
-              l.ip_address, l.created_at
+      `SELECT l.id, l.user_id, u.email, l.action, l.module as module, l.resource_type as resource_type, l.resource_id,
+              l.ip_address, l.statut, l.detail, l.created_at
        FROM audit_logs l
        LEFT JOIN users u ON l.user_id = u.id
        ORDER BY l.created_at DESC

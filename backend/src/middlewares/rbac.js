@@ -147,13 +147,31 @@ const requirePermission = (...allowedPermissions) => {
  * @param {string} userAgent - User agent du client
  * @returns {Promise}
  */
-const logAudit = async (userId, action, resource, resourceId, ipAddress, userAgent) => {
+const logAudit = async (userId, action, moduleName, resourceType, resourceId, ipAddress, userAgent) => {
   try {
+    // Normalize values to match audit_logs schema
+    const moduleVal = moduleName || 'system';
+    const resourceTypeVal = resourceType || null;
+
+    const params = [
+      userId == null ? null : userId,
+      action == null ? null : action,
+      moduleVal,
+      resourceTypeVal,
+      resourceId == null ? null : resourceId,
+      null, // ancien_etat
+      null, // nouvel_etat
+      ipAddress == null ? null : ipAddress,
+      userAgent == null ? null : userAgent,
+      'success', // statut
+      null // detail
+    ];
+
     await query(
-      `INSERT INTO audit_logs 
-       (user_id, action, resource, resource_id, ip_address, user_agent, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [userId, action, resource, resourceId, ipAddress, userAgent]
+      `INSERT INTO audit_logs
+       (user_id, action, module, resource_type, resource_id, ancien_etat, nouvel_etat, ip_address, user_agent, statut, detail, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      params
     );
   } catch (error) {
     logger.error('Erreur enregistrement audit log:', error);
@@ -174,10 +192,16 @@ const auditLogger = (req, res, next) => {
         req.headers['x-forwarded-for'];
 
       setImmediate(() => {
+        const parts = (req.path || '').split('/');
+        const resource = parts[2] || null; // 'courses' de '/api/courses'
+        const moduleName = resource || 'system';
+
+        // Ensure we never pass a null module (schema requires NOT NULL)
         logAudit(
           req.user.id,
           `${req.method} ${req.path}`,
-          req.path.split('/')[2], // Extraire la ressource (ex: 'courses' de '/api/courses')
+          moduleName,
+          resource,
           req.params.id || null,
           ipAddress,
           req.headers['user-agent']
