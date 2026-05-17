@@ -6,7 +6,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -99,7 +99,7 @@ router.post(
       let insertResult = null;
       for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          const [result] = await pool.execute(
+          const result = await query(
             `INSERT INTO courses 
              (titre, slug, description, objectifs, prerequis, niveau, duree,
               category_id, instructor_id, langue, status, created_at, updated_at)
@@ -122,12 +122,14 @@ router.post(
         throw new Error('Unable to create course after multiple attempts (slug conflict)');
       }
 
-      await logAudit(req.user.id, 'CREATE_COURSE', 'cours', 'courses', insertResult.insertId, req.ip, req.headers['user-agent']);
+      const courseId = Array.isArray(insertResult) ? insertResult[0]?.insertId : insertResult?.insertId;
+
+      await logAudit(req.user.id, 'CREATE_COURSE', 'cours', 'courses', courseId, req.ip, req.headers['user-agent']);
 
       res.status(201).json({
         success: true,
         message: 'Cours créé avec succès',
-        data: { courseId: insertResult.insertId }
+        data: { courseId }
       });
     } catch (error) {
       logger.error('Erreur création cours:', error);

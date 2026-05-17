@@ -151,6 +151,21 @@ app.use('/api/paths', require('./routes/paths'));
 app.use('/api/enrollments', require('./routes/enrollments'));
 app.use('/api/assessments', require('./routes/assessments'));
 app.use('/api/lessons', require('./routes/lessons'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/messages', require('./routes/messages'));
+app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/forum', require('./routes/forum'));
+app.use('/api/certificates', require('./routes/certificates'));
+app.use('/api/badges', require('./routes/badges'));
+app.use('/api/gdpr', require('./routes/gdpr'));
+app.use('/api/media', require('./routes/media'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/stats', require('./routes/stats'));
+app.use('/api/sections', require('./routes/sections'));
+app.use('/api/resources', require('./routes/resources'));
+app.use('/api/work-sessions', require('./routes/work-sessions'));
+app.use('/api/submissions', require('./routes/submissions'));
+app.use('/api/progress', require('./routes/progress'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Routes admin
