@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -88,7 +88,7 @@ router.get('/:id', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
 
   try {
     const {
@@ -246,7 +246,7 @@ router.get('/:id/questions', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/:id/questions', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
 
   try {
     const assessment = await queryOne('SELECT id, course_id FROM assessments WHERE id = ?', [req.params.id]);
@@ -352,7 +352,7 @@ router.delete('/questions/:questionId', verifyJWT, loadRBACContext, requireRole(
 });
 
 router.post('/questions/:questionId/answers', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
 
   try {
     const question = await queryOne('SELECT id FROM questions WHERE id = ?', [req.params.questionId]);

@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -26,7 +26,7 @@ router.get('/lessons', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/lessons', verifyJWT, loadRBACContext, async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { lesson_id, enrollment_id, completed, temps_passe } = req.body;
     if (!lesson_id || !enrollment_id) {
@@ -80,7 +80,7 @@ router.get('/paths', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/paths', verifyJWT, loadRBACContext, async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { path_id } = req.body;
     if (!path_id) {

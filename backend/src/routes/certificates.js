@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -62,7 +62,7 @@ router.get('/verify/:numero_serie', async (req, res) => {
 });
 
 router.post('/issue', verifyJWT, loadRBACContext, requireRole('admin', 'instructor'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { user_id, course_id, path_id, numero_serie, url_pdf } = req.body;
     if (!user_id || (!course_id && !path_id)) {

@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -24,7 +24,7 @@ router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/', verifyJWT, loadRBACContext, async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { assessment_id, answers = [] } = req.body;
     if (!assessment_id) {
@@ -36,10 +36,16 @@ router.post('/', verifyJWT, loadRBACContext, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Évaluation non trouvée' });
     }
 
+    const latestTentative = await queryOne(
+      'SELECT COALESCE(MAX(tentative_num), 0) AS max_tentative FROM submissions WHERE user_id = ? AND assessment_id = ?',
+      [req.user.id, assessment_id]
+    );
+    const tentativeNum = Number(latestTentative?.max_tentative || 0) + 1;
+
     const [submissionResult] = await connection.execute(
       `INSERT INTO submissions (user_id, assessment_id, tentative_num, status, debut_at, created_at, updated_at)
-       VALUES (?, ?, COALESCE((SELECT MAX(tentative_num) + 1 FROM submissions WHERE user_id = ? AND assessment_id = ?), 1), 'soumis', NOW(), NOW(), NOW())`,
-      [req.user.id, assessment_id, req.user.id, assessment_id]
+       VALUES (?, ?, ?, 'soumis', NOW(), NOW(), NOW())`,
+      [req.user.id, assessment_id, tentativeNum]
     );
 
     const questions = await query('SELECT * FROM questions WHERE assessment_id = ? ORDER BY ordre ASC', [assessment_id]);

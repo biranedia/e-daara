@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -34,7 +34,7 @@ router.get('/mine', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { nom, description, icone, critere, xp_valeur } = req.body;
     if (!nom) {
@@ -58,7 +58,7 @@ router.post('/', verifyJWT, loadRBACContext, requireRole('admin'), async (req, r
 });
 
 router.post('/award', verifyJWT, loadRBACContext, requireRole('admin', 'instructor'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { user_id, badge_id } = req.body;
     if (!user_id || !badge_id) {

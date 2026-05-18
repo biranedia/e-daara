@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -30,7 +30,7 @@ router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 router.post('/', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const { lesson_id, type, titre, url, taille_ko, duree_sec, ordre, is_telechar } = req.body;
     if (!lesson_id || !type || !titre || !url) {

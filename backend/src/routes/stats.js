@@ -1,7 +1,7 @@
 const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne, pool } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -17,7 +17,7 @@ router.get('/latest', verifyJWT, loadRBACContext, requireRole('admin'), async (r
 });
 
 router.post('/refresh', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await getConnection();
   try {
     const [users] = await connection.execute('SELECT COUNT(*) AS total FROM users WHERE deleted_at IS NULL');
     const [courses] = await connection.execute('SELECT COUNT(*) AS total FROM courses WHERE deleted_at IS NULL');
