@@ -1,0 +1,31 @@
+# Dépendances
+node_modules/
+
+# Build
+dist/
+out-tsc/
+bazel-out/
+.angular/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Tests
+coverage/
+*.log
+
+# Environnement local
+.env
+.env.local

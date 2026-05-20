@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "angular.ng-template",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+    "syler.sass-indented",
+    "johnpapa.angular-essentials"
+  ]
+}

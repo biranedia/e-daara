@@ -1,0 +1,51 @@
+{
+  "app": {
+    "name": "E-DAARA",
+    "tagline": "Sovereign online learning platform"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "back": "Back"
+  },
+  "auth": {
+    "login": "Sign in",
+    "register": "Sign up",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "forgot": "Forgot password?",
+    "no_account": "No account yet?",
+    "have_account": "Already registered?"
+  },
+  "nav": {
+    "home": "Home",
+    "catalogue": "Catalogue",
+    "about": "About",
+    "dashboard": "Dashboard",
+    "courses": "Courses",
+    "paths": "Paths",
+    "certificates": "Certificates",
+    "badges": "Badges",
+    "forum": "Forum",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "admin_space": "Admin area",
+    "instructor_space": "Instructor area",
+    "student_space": "My area"
+  },
+  "admin": {
+    "users": "Users",
+    "courses_pending": "Course validation",
+    "audit_logs": "Audit logs",
+    "stats": "Statistics",
+    "settings": "Settings",
+    "gdpr": "GDPR / CDP"
+  }
+}

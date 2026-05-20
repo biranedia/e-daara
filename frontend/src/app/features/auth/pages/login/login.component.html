@@ -1,0 +1,92 @@
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-edaara-light to-slate-200 p-4">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-edaara-dark">E-DAARA</h1>
+      <p class="text-slate-500 mt-1">Connexion à votre espace</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email" />
+        <mat-icon matSuffix>mail</mat-icon>
+        @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+          <mat-error>Email requis</mat-error>
+        }
+        @if (form.controls.email.hasError('email')) {
+          <mat-error>Format email invalide</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+          autocomplete="current-password" />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="togglePassword()"
+          [attr.aria-label]="'Afficher le mot de passe'">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+          <mat-error>Mot de passe requis</mat-error>
+        }
+        @if (form.controls.password.hasError('minlength')) {
+          <mat-error>Au moins 8 caractères</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMsg()) {
+        <div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+          {{ errorMsg() }}
+        </div>
+      }
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="!h-12 !text-base"
+        [disabled]="form.invalid || loading()">
+        @if (loading()) {
+          <mat-spinner diameter="22"></mat-spinner>
+        } @else {
+          Se connecter
+        }
+      </button>
+
+      <div class="flex justify-between text-sm mt-2">
+        <a routerLink="/auth/forgot-password" class="text-edaara-primary hover:underline">
+          Mot de passe oublié ?
+        </a>
+        <a routerLink="/auth/register" class="text-edaara-primary hover:underline">
+          Créer un compte
+        </a>
+      </div>
+
+      <!-- Séparateur OAuth -->
+      <div class="flex items-center gap-3 my-2" role="separator" aria-label="ou continuer avec">
+        <div class="flex-1 h-px bg-slate-200"></div>
+        <span class="text-xs text-slate-400 uppercase tracking-wider">ou continuer avec</span>
+        <div class="flex-1 h-px bg-slate-200"></div>
+      </div>
+
+      <!-- Boutons OAuth -->
+      <div class="grid grid-cols-2 gap-3">
+        <a mat-stroked-button [href]="googleOAuthUrl" class="!h-12"
+           aria-label="Se connecter avec Google">
+          <span class="font-semibold">G</span> Google
+        </a>
+        <a mat-stroked-button [href]="facebookOAuthUrl" class="!h-12"
+           aria-label="Se connecter avec Facebook">
+          <span class="font-semibold">f</span> Facebook
+        </a>
+      </div>
+    </form>
+  </div>
+</div>

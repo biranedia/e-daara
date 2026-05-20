@@ -1,0 +1,51 @@
+{
+  "app": {
+    "name": "E-DAARA",
+    "tagline": "Daara ci internet bu nu moom"
+  },
+  "common": {
+    "save": "Denc",
+    "cancel": "Bañ",
+    "delete": "Far",
+    "edit": "Soppi",
+    "create": "Sos",
+    "search": "Seet",
+    "loading": "Mu ngi yegg...",
+    "back": "Dellu"
+  },
+  "auth": {
+    "login": "Dugg",
+    "register": "Bind sa tur",
+    "logout": "Génn",
+    "email": "Email",
+    "password": "Baatu sutura",
+    "forgot": "Fàtte naa sama baatu sutura?",
+    "no_account": "Amul kont?",
+    "have_account": "Am nga kont?"
+  },
+  "nav": {
+    "home": "Kër",
+    "catalogue": "Liisi cours yi",
+    "about": "Ci kër E-DAARA",
+    "dashboard": "Sama dashboard",
+    "courses": "Cours yi",
+    "paths": "Yoon yi",
+    "certificates": "Seedeel yi",
+    "badges": "Badges yi",
+    "forum": "Forum",
+    "messages": "Bataaxal yi",
+    "notifications": "Yegle yi",
+    "profile": "Sama tur",
+    "admin_space": "Bérébu admin",
+    "instructor_space": "Bérébu jàngalekat",
+    "student_space": "Sama bérébu"
+  },
+  "admin": {
+    "users": "Jëfandikukat yi",
+    "courses_pending": "Cours yiy xaar",
+    "audit_logs": "Tegtali jëfin yi",
+    "stats": "Limu yi",
+    "settings": "Tànneef yi",
+    "gdpr": "RGPD / CDP"
+  }
+}
