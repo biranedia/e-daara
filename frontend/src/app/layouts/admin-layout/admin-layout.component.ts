@@ -23,6 +23,8 @@ export class AdminLayoutComponent {
     { label: 'Logs d\'audit', icon: 'security', route: '/admin/audit-logs' },
     { label: 'Statistiques', icon: 'bar_chart', route: '/admin/stats' },
     { label: 'Paramètres', icon: 'settings', route: '/admin/settings' },
-    { label: 'RGPD / CDP', icon: 'privacy_tip', route: '/admin/gdpr' }
+    { label: 'RGPD / CDP', icon: 'privacy_tip', route: '/admin/gdpr' },
+    { label: 'Badges', icon: 'emoji_events', route: '/admin/badges' },
+    { label: 'Certificats', icon: 'workspace_premium', route: '/admin/certificates' }
   ];
 }

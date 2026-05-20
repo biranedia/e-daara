@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { ApiResponse, Course, Section, Lesson } from '../models';
+import { ApiResponse, Course, Section, Lesson, Resource } from '../models';
 
 /**
  * Service Cours — branché sur /api/courses, /api/sections, /api/lessons, /api/public/courses.
@@ -61,6 +61,10 @@ export class CourseService {
     );
   }
 
+  getSection(id: number) {
+    return this.api.get<ApiResponse<{ section: Section & { lessons?: Lesson[] } }>>(`/sections/${id}`);
+  }
+
   createSection(payload: Partial<Section>) {
     return this.api.post<ApiResponse<{ sectionId: number }>>('/sections', payload);
   }
@@ -106,5 +110,21 @@ export class CourseService {
 
   deleteLesson(id: number) {
     return this.api.delete<ApiResponse<unknown>>(`/lessons/${id}`);
+  }
+
+  // ----- Ressources -----
+  listResources(lessonId: number) {
+    return this.api.get<ApiResponse<{ resources: Resource[] }>>(
+      '/resources',
+      { lesson_id: lessonId }
+    );
+  }
+
+  createResource(payload: Partial<Resource>) {
+    return this.api.post<ApiResponse<{ resourceId: number }>>('/resources', payload);
+  }
+
+  deleteResource(id: number) {
+    return this.api.delete<ApiResponse<unknown>>(`/resources/${id}`);
   }
 }

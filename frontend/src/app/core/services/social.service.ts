@@ -7,7 +7,8 @@ import {
   Certificate,
   ForumPost,
   Message,
-  Notification
+  Notification,
+  UserBadge
 } from '../models';
 
 /**
@@ -86,17 +87,28 @@ export class SocialService {
   }
 
   // ----- Annonces -----
-  listAnnouncements() {
-    return this.api.get<ApiResponse<{ announcements: Announcement[] }>>('/announcements');
+  listAnnouncements(courseId?: number) {
+    const params = courseId ? { course_id: courseId } : {};
+    return this.api.get<ApiResponse<{ announcements: Announcement[] }>>('/announcements', params as Record<string, number>);
   }
 
-  createAnnouncement(payload: Partial<Announcement>) {
-    // Le backend attend `corps` et non `contenu`
+  createAnnouncement(payload: Partial<Announcement> & { contenu?: string }) {
     return this.api.post<ApiResponse<unknown>>('/announcements', {
       course_id: payload.course_id,
       titre: payload.titre,
-      corps: (payload as Announcement & { contenu?: string }).contenu ?? payload.contenu
+      corps: payload.contenu ?? payload.corps
     });
+  }
+
+  updateAnnouncement(id: number, payload: Partial<Announcement> & { contenu?: string }) {
+    return this.api.put<ApiResponse<unknown>>(`/announcements/${id}`, {
+      titre: payload.titre,
+      corps: payload.contenu ?? payload.corps
+    });
+  }
+
+  deleteAnnouncement(id: number) {
+    return this.api.delete<ApiResponse<unknown>>(`/announcements/${id}`);
   }
 
   // ----- Certificats -----
@@ -110,12 +122,27 @@ export class SocialService {
     );
   }
 
+  issueCertificate(payload: { user_id: number; course_id?: number; path_id?: number }) {
+    return this.api.post<ApiResponse<{ certificateId: number; numero_serie: string }>>(
+      '/certificates/issue',
+      payload
+    );
+  }
+
   // ----- Badges -----
   listAllBadges() {
     return this.api.get<ApiResponse<{ badges: Badge[] }>>('/badges');
   }
 
   listMyBadges() {
-    return this.api.get<ApiResponse<{ badges: Badge[] }>>('/badges/mine');
+    return this.api.get<ApiResponse<{ badges: UserBadge[] }>>('/badges/mine');
+  }
+
+  createBadge(payload: Partial<Badge>) {
+    return this.api.post<ApiResponse<{ badgeId: number }>>('/badges', payload);
+  }
+
+  awardBadge(payload: { user_id: number; badge_id: number }) {
+    return this.api.post<ApiResponse<unknown>>('/badges/award', payload);
   }
 }

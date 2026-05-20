@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { SocialService } from '@core/services/social.service';
-import { Badge } from '@core/models';
+import { Badge, UserBadge } from '@core/models';
 
 @Component({
   selector: 'app-student-badges',
@@ -21,11 +21,12 @@ import { Badge } from '@core/models';
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           @for (b of myBadges(); track b.id) {
             <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
-              <div class="w-16 h-16 mx-auto rounded-full bg-edaara-accent/20 flex items-center justify-center">
-                <mat-icon class="!w-10 !h-10 !text-4xl text-edaara-accent">military_tech</mat-icon>
+              <div class="w-16 h-16 mx-auto rounded-full bg-edaara-accent/20 flex items-center justify-center text-3xl">
+                {{ b.badge_icone || '🏅' }}
               </div>
-              <p class="text-sm font-semibold text-edaara-dark mt-2">{{ b.nom }}</p>
-              <p class="text-xs text-slate-500 mt-1">{{ b.description }}</p>
+              <p class="text-sm font-semibold text-edaara-dark mt-2">{{ b.badge_nom }}</p>
+              <p class="text-xs text-slate-500 mt-1">{{ b.badge_description }}</p>
+              <p class="text-xs text-slate-400 mt-1">{{ b.date_obtention | date:'dd/MM/yyyy' }}</p>
             </div>
           } @empty {
             <p class="col-span-full text-center py-6 text-slate-500">Aucun badge débloqué</p>
@@ -52,7 +53,7 @@ import { Badge } from '@core/models';
 })
 export class StudentBadgesComponent implements OnInit {
   private readonly social = inject(SocialService);
-  protected readonly myBadges = signal<Badge[]>([]);
+  protected readonly myBadges = signal<UserBadge[]>([]);
   protected readonly locked = signal<Badge[]>([]);
 
   ngOnInit(): void {
@@ -62,7 +63,7 @@ export class StudentBadgesComponent implements OnInit {
     this.social.listAllBadges().subscribe({
       next: (res) => {
         const all = res.data?.badges ?? [];
-        const mineIds = new Set(this.myBadges().map((b) => b.id));
+        const mineIds = new Set(this.myBadges().map((b) => b.badge_id));
         this.locked.set(all.filter((b) => !mineIds.has(b.id)));
       }
     });

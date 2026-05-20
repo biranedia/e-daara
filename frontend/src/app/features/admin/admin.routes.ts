@@ -38,5 +38,17 @@ export const ADMIN_ROUTES: Routes = [
     path: 'gdpr',
     loadComponent: () =>
       import('./pages/admin-gdpr/admin-gdpr.component').then((m) => m.AdminGdprComponent)
+  },
+  {
+    path: 'badges',
+    loadComponent: () =>
+      import('./pages/admin-badges/admin-badges.component').then((m) => m.AdminBadgesComponent)
+  },
+  {
+    path: 'certificates',
+    loadComponent: () =>
+      import('./pages/admin-certificates/admin-certificates.component').then(
+        (m) => m.AdminCertificatesComponent
+      )
   }
 ];

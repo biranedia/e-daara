@@ -118,7 +118,16 @@ export class InstructorCourseEditComponent implements OnInit {
       this.courseService.get(id).subscribe({
         next: (res) => {
           if (res.data?.course) {
-            this.form.patchValue(res.data.course);
+            const c = res.data.course;
+            this.form.patchValue({
+              titre: c.titre ?? '',
+              description: c.description ?? '',
+              objectifs: c.objectifs ?? '',
+              prerequis: c.prerequis ?? '',
+              niveau: c.niveau ?? 'debutant',
+              duree: c.duree ?? 60,
+              langue: c.langue ?? 'fr'
+            });
           }
         }
       });
@@ -128,7 +137,11 @@ export class InstructorCourseEditComponent implements OnInit {
   save(): void {
     if (this.form.invalid) return;
     this.saving.set(true);
-    const payload = this.form.getRawValue();
+    const raw = this.form.getRawValue();
+    const payload: Partial<import('@core/models').Course> = {
+      ...raw,
+      niveau: raw.niveau as import('@core/models').Course['niveau']
+    };
     const obs = this.id()
       ? this.courseService.update(this.id()!, payload)
       : this.courseService.create(payload);

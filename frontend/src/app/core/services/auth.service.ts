@@ -115,6 +115,26 @@ export class AuthService {
     return this.api.post<ApiResponse<unknown>>('/auth/reset-password', { token, newPassword });
   }
 
+  updateProfile(payload: Partial<User>): Observable<ApiResponse<unknown>> {
+    return this.api.put<ApiResponse<unknown>>('/users/profile', payload).pipe(
+      tap((res) => {
+        if (res.success) {
+          const updated = { ...this.userSignal()!, ...payload };
+          this.storage.saveUser(updated);
+          this.userSignal.set(updated);
+          this.user$.next(updated);
+        }
+      })
+    );
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<ApiResponse<unknown>> {
+    return this.api.post<ApiResponse<unknown>>('/users/change-password', {
+      currentPassword,
+      newPassword
+    });
+  }
+
   /**
    * Stocke les tokens à l'issue d'un login / register réussi
    * puis déclenche le chargement du profil pour récupérer les rôles.

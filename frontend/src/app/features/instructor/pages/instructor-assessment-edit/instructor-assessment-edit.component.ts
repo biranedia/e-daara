@@ -73,10 +73,14 @@ import { Question } from '@core/models';
                 <p class="text-xs font-semibold text-slate-600 uppercase">Réponses</p>
                 <div class="flex gap-2 items-center">
                   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1">
-                    <input matInput [(ngModel)]="newAnswer[q.id] ||= { texte: '', est_correcte: false }; newAnswer[q.id]!.texte"
-                           placeholder="Texte de la réponse" />
+                    <input matInput
+                      [ngModel]="getNewAnswer(q.id).texte"
+                      (ngModelChange)="getNewAnswer(q.id).texte = $event"
+                      placeholder="Texte de la réponse" />
                   </mat-form-field>
-                  <mat-checkbox [(ngModel)]="newAnswer[q.id]!.est_correcte">Correcte</mat-checkbox>
+                  <mat-checkbox
+                    [ngModel]="getNewAnswer(q.id).est_correcte"
+                    (ngModelChange)="getNewAnswer(q.id).est_correcte = $event">Correcte</mat-checkbox>
                   <button mat-stroked-button color="primary" (click)="addAnswer(q.id)">Ajouter</button>
                 </div>
               </div>
@@ -121,6 +125,13 @@ export class InstructorAssessmentEditComponent implements OnInit {
 
   removeQuestion(q: Question): void {
     this.assessmentService.deleteQuestion(q.id).subscribe({ next: () => this.load() });
+  }
+
+  getNewAnswer(questionId: number): { texte: string; est_correcte: boolean } {
+    if (!this.newAnswer[questionId]) {
+      this.newAnswer[questionId] = { texte: '', est_correcte: false };
+    }
+    return this.newAnswer[questionId];
   }
 
   addAnswer(questionId: number): void {

@@ -56,13 +56,18 @@ export interface Announcement {
   corps?: string;
   contenu?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Certificate {
   id: number;
   user_id: number;
-  course_id?: number;
+  course_id?: number | null;
+  path_id?: number | null;
   course_titre?: string;
+  path_titre?: string;
+  user_nom?: string;
+  user_prenom?: string;
   numero_serie: string;
   date_emission: string;
   url_pdf?: string | null;
@@ -74,4 +79,16 @@ export interface Badge {
   description?: string;
   icone?: string;
   critere?: string;
+  xp_valeur?: number;
+  created_at?: string;
+}
+
+export interface UserBadge {
+  id: number;
+  user_id: number;
+  badge_id: number;
+  badge_nom?: string;
+  badge_icone?: string;
+  badge_description?: string;
+  date_obtention: string;
 }

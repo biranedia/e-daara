@@ -38,7 +38,7 @@ import { AppTopbarComponent } from '@shared/components/app-topbar/app-topbar.com
 
       <!-- Zone principale -->
       <div class="flex-1 flex flex-col overflow-hidden">
-        <app-topbar (toggleSidebar)="mobileOpen.update(v => !v)">{{ pageTitle }}</app-topbar>
+        <app-topbar (toggleSidebar)="toggleMobile()">{{ pageTitle }}</app-topbar>
         <main id="main-content" class="flex-1 overflow-auto p-4 lg:p-6" tabindex="-1">
           <router-outlet></router-outlet>
         </main>
@@ -52,4 +52,8 @@ export class RoleLayoutComponent {
   @Input({ required: true }) items: SidebarItem[] = [];
 
   readonly mobileOpen = signal(false);
+
+  toggleMobile(): void {
+    this.mobileOpen.update((v) => !v);
+  }
 }

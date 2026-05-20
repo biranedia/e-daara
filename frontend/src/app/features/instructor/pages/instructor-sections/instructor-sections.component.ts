@@ -10,7 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CourseService } from '@core/services/course.service';
-import { Lesson, Section } from '@core/models';
+import { Lesson, Resource, Section } from '@core/models';
 
 @Component({
   selector: 'app-instructor-sections',
@@ -33,6 +33,7 @@ import { Lesson, Section } from '@core/models';
         </div>
       </header>
 
+      <!-- Formulaire nouvelle section -->
       <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
         <h3 class="font-semibold mb-2">Ajouter une section</h3>
         <div class="flex gap-2">
@@ -45,7 +46,7 @@ import { Lesson, Section } from '@core/models';
         </div>
       </div>
 
-      <mat-accordion>
+      <mat-accordion multi>
         @for (s of sections(); track s.id) {
           <mat-expansion-panel>
             <mat-expansion-panel-header>
@@ -57,29 +58,88 @@ import { Lesson, Section } from '@core/models';
               </mat-panel-description>
             </mat-expansion-panel-header>
 
-            <div class="space-y-2 pt-2">
+            <div class="space-y-3 pt-2">
+              <!-- Liste des leçons -->
               @for (l of lessonsBySection()[s.id] || []; track l.id) {
-                <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded">
-                  <mat-icon class="text-slate-400">{{ iconFor(l.type) }}</mat-icon>
-                  <span class="flex-1 text-sm">{{ l.ordre }}. {{ l.titre }}</span>
-                  <span class="text-xs text-slate-500">{{ l.duree }} min</span>
-                  <button mat-icon-button (click)="removeLesson(l, s.id)" aria-label="Supprimer">
-                    <mat-icon class="!text-red-500">delete</mat-icon>
-                  </button>
+                <div class="border border-slate-200 rounded-lg">
+                  <!-- En-tête leçon -->
+                  <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-t-lg">
+                    <mat-icon class="text-slate-400 !text-base">{{ iconFor(l.type) }}</mat-icon>
+                    <span class="flex-1 text-sm font-medium">{{ l.ordre }}. {{ l.titre }}</span>
+                    <span class="text-xs text-slate-500">{{ l.duree }} min</span>
+                    <button mat-icon-button (click)="toggleResources(l.id)" aria-label="Ressources">
+                      <mat-icon class="!text-base !text-slate-400">attach_file</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="removeLesson(l, s.id)" aria-label="Supprimer">
+                      <mat-icon class="!text-base !text-red-400">delete</mat-icon>
+                    </button>
+                  </div>
+
+                  <!-- Panneau ressources (dépliable) -->
+                  @if (expandedLesson() === l.id) {
+                    <div class="p-3 bg-white space-y-2">
+                      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ressources</p>
+                      @for (r of resourcesByLesson()[l.id] || []; track r.id) {
+                        <div class="flex items-center gap-2 text-sm py-1">
+                          <mat-icon class="!text-base text-slate-400">{{ resIcon(r.type) }}</mat-icon>
+                          <a [href]="r.url" target="_blank" class="flex-1 truncate text-blue-600 hover:underline">
+                            {{ r.titre }}
+                          </a>
+                          <button mat-icon-button (click)="removeResource(r, l.id)" aria-label="Supprimer">
+                            <mat-icon class="!text-base !text-red-400">close</mat-icon>
+                          </button>
+                        </div>
+                      } @empty {
+                        <p class="text-xs text-slate-400">Aucune ressource</p>
+                      }
+
+                      <!-- Formulaire ajout ressource -->
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-label>Titre</mat-label>
+                          <input matInput [ngModel]="getNewRes(l.id).titre" (ngModelChange)="getNewRes(l.id).titre = $event" />
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-label>URL</mat-label>
+                          <input matInput [ngModel]="getNewRes(l.id).url" (ngModelChange)="getNewRes(l.id).url = $event" />
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-label>Type</mat-label>
+                          <mat-select [ngModel]="getNewRes(l.id).type" (ngModelChange)="getNewRes(l.id).type = $event">
+                            <mat-option value="video">Vidéo</mat-option>
+                            <mat-option value="pdf">PDF</mat-option>
+                            <mat-option value="lien">Lien</mat-option>
+                            <mat-option value="image">Image</mat-option>
+                            <mat-option value="audio">Audio</mat-option>
+                            <mat-option value="autre">Autre</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="flex justify-end">
+                        <button mat-flat-button color="accent" (click)="addResource(l.id)">
+                          <mat-icon>add</mat-icon> Ajouter ressource
+                        </button>
+                      </div>
+                    </div>
+                  }
                 </div>
               }
 
-              <div class="grid sm:grid-cols-4 gap-2 mt-3 p-3 bg-slate-50 rounded">
+              <!-- Formulaire ajout leçon -->
+              <div class="grid sm:grid-cols-4 gap-2 p-3 bg-slate-50 rounded">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sm:col-span-2">
-                  <input matInput [(ngModel)]="newLesson[s.id] ||= { titre: '', type: 'video', duree: 10 }; newLesson[s.id]!.titre"
-                         placeholder="Titre de la leçon" />
+                  <input matInput
+                    [ngModel]="getNewLesson(s.id).titre"
+                    (ngModelChange)="getNewLesson(s.id).titre = $event"
+                    placeholder="Titre de la leçon" />
                 </mat-form-field>
                 <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                  <mat-select [(ngModel)]="newLesson[s.id]!.type">
+                  <mat-select [ngModel]="getNewLesson(s.id).type" (ngModelChange)="getNewLesson(s.id).type = $event">
                     <mat-option value="video">Vidéo</mat-option>
                     <mat-option value="pdf">PDF</mat-option>
                     <mat-option value="texte">Texte</mat-option>
                     <mat-option value="lien">Lien</mat-option>
+                    <mat-option value="projet">Projet</mat-option>
                   </mat-select>
                 </mat-form-field>
                 <button mat-flat-button color="primary" (click)="addLesson(s.id)">
@@ -87,9 +147,9 @@ import { Lesson, Section } from '@core/models';
                 </button>
               </div>
 
-              <div class="flex justify-end mt-3">
+              <div class="flex justify-end">
                 <button mat-stroked-button color="warn" (click)="removeSection(s)">
-                  <mat-icon>delete</mat-icon> Supprimer cette section
+                  <mat-icon>delete</mat-icon> Supprimer la section
                 </button>
               </div>
             </div>
@@ -111,8 +171,12 @@ export class InstructorSectionsComponent implements OnInit {
   protected readonly courseId = Number(this.route.snapshot.paramMap.get('id'));
   protected readonly sections = signal<Section[]>([]);
   protected readonly lessonsBySection = signal<Record<number, Lesson[]>>({});
+  protected readonly resourcesByLesson = signal<Record<number, Resource[]>>({});
+  protected readonly expandedLesson = signal<number | null>(null);
+
   protected newSectionTitle = '';
   protected newLesson: Record<number, { titre: string; type: string; duree: number }> = {};
+  protected newResource: Record<number, { titre: string; url: string; type: string }> = {};
 
   ngOnInit(): void {
     this.load();
@@ -134,6 +198,23 @@ export class InstructorSectionsComponent implements OnInit {
         this.lessonsBySection.update((m) => ({ ...m, [sectionId]: res.data?.lessons ?? [] }));
       }
     });
+  }
+
+  loadResources(lessonId: number): void {
+    this.courseService.listResources(lessonId).subscribe({
+      next: (res) => {
+        this.resourcesByLesson.update((m) => ({ ...m, [lessonId]: res.data?.resources ?? [] }));
+      }
+    });
+  }
+
+  toggleResources(lessonId: number): void {
+    if (this.expandedLesson() === lessonId) {
+      this.expandedLesson.set(null);
+    } else {
+      this.expandedLesson.set(lessonId);
+      this.loadResources(lessonId);
+    }
   }
 
   addSection(): void {
@@ -170,19 +251,72 @@ export class InstructorSectionsComponent implements OnInit {
       ordre
     }).subscribe({
       next: () => {
-        this.newLesson[sectionId] = { titre: '', type: 'video', duree: 10 };
+        this.newLesson[sectionId] = this.emptyLesson();
         this.loadLessons(sectionId);
       }
     });
   }
 
   removeLesson(l: Lesson, sectionId: number): void {
+    if (!confirm(`Supprimer la leçon "${l.titre}" ?`)) return;
     this.courseService.deleteLesson(l.id).subscribe({
-      next: () => this.loadLessons(sectionId)
+      next: () => {
+        if (this.expandedLesson() === l.id) this.expandedLesson.set(null);
+        this.loadLessons(sectionId);
+      }
+    });
+  }
+
+  addResource(lessonId: number): void {
+    const data = this.newResource[lessonId];
+    if (!data?.titre.trim() || !data?.url.trim()) return;
+    this.courseService.createResource({
+      lesson_id: lessonId,
+      titre: data.titre,
+      url: data.url,
+      type: data.type as Resource['type'],
+      ordre: (this.resourcesByLesson()[lessonId] || []).length + 1
+    }).subscribe({
+      next: () => {
+        this.newResource[lessonId] = this.emptyRes();
+        this.snack.open('Ressource ajoutée', 'OK', { duration: 1500 });
+        this.loadResources(lessonId);
+      },
+      error: () => this.snack.open('Erreur lors de l\'ajout', 'OK', { duration: 3000 })
+    });
+  }
+
+  removeResource(r: Resource, lessonId: number): void {
+    this.courseService.deleteResource(r.id).subscribe({
+      next: () => {
+        this.snack.open('Ressource supprimée', 'OK', { duration: 1500 });
+        this.loadResources(lessonId);
+      }
     });
   }
 
   iconFor(t?: string): string {
     return { video: 'play_circle', pdf: 'picture_as_pdf', texte: 'article', lien: 'link', projet: 'assignment' }[t ?? ''] ?? 'article';
+  }
+
+  resIcon(t?: string): string {
+    return { video: 'videocam', pdf: 'picture_as_pdf', lien: 'link', image: 'image', audio: 'headphones', autre: 'attach_file' }[t ?? ''] ?? 'attach_file';
+  }
+
+  emptyLesson() { return { titre: '', type: 'video', duree: 10 }; }
+  emptyRes() { return { titre: '', url: '', type: 'lien' }; }
+
+  getNewLesson(sectionId: number): { titre: string; type: string; duree: number } {
+    if (!this.newLesson[sectionId]) {
+      this.newLesson[sectionId] = this.emptyLesson();
+    }
+    return this.newLesson[sectionId];
+  }
+
+  getNewRes(lessonId: number): { titre: string; url: string; type: string } {
+    if (!this.newResource[lessonId]) {
+      this.newResource[lessonId] = this.emptyRes();
+    }
+    return this.newResource[lessonId];
   }
 }

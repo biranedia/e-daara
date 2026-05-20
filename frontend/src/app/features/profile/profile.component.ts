@@ -8,10 +8,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { AdminService } from '@core/services/admin.service';
-import { ApiResponse } from '@core/models';
 
 @Component({
   selector: 'app-profile',
@@ -111,7 +109,6 @@ import { ApiResponse } from '@core/models';
 })
 export class ProfileComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
-  private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly admin = inject(AdminService);
   private readonly snack = inject(MatSnackBar);
@@ -133,20 +130,29 @@ export class ProfileComponent implements OnInit {
     this.auth.loadProfile().subscribe({
       next: (res) => {
         if (res.data?.user) {
-          this.profileForm.patchValue(res.data.user);
+          const u = res.data.user;
+          this.profileForm.patchValue({
+            nom: u.nom ?? '',
+            prenom: u.prenom ?? '',
+            bio: u.bio ?? '',
+            avatar: u.avatar ?? '',
+            langue_pref: u.langue_pref ?? 'fr'
+          });
         }
       }
     });
   }
 
   saveProfile(): void {
-    this.api.put<ApiResponse<unknown>>('/users/profile', this.profileForm.getRawValue()).subscribe({
-      next: () => this.snack.open('Profil mis à jour', 'OK', { duration: 2000 })
+    this.auth.updateProfile(this.profileForm.getRawValue()).subscribe({
+      next: () => this.snack.open('Profil mis à jour', 'OK', { duration: 2000 }),
+      error: (err) => this.snack.open(err?.error?.message ?? 'Erreur', 'OK', { duration: 3000 })
     });
   }
 
   savePassword(): void {
-    this.api.post<ApiResponse<unknown>>('/users/change-password', this.passwordForm.getRawValue()).subscribe({
+    const { currentPassword, newPassword } = this.passwordForm.getRawValue();
+    this.auth.changePassword(currentPassword, newPassword).subscribe({
       next: () => {
         this.snack.open('Mot de passe modifié', 'OK', { duration: 2000 });
         this.passwordForm.reset();

@@ -51,6 +51,14 @@ export class EnrollmentService {
     return this.api.get<ApiResponse<unknown>>('/progress/paths');
   }
 
+  enrollPath(pathId: number) {
+    return this.api.post<ApiResponse<unknown>>('/progress/paths', { path_id: pathId });
+  }
+
+  updatePathProgress(id: number, payload: { progression?: number; statut?: string }) {
+    return this.api.put<ApiResponse<unknown>>(`/progress/paths/${id}`, payload);
+  }
+
   // ----- Sessions de travail (souveraineté : suivi temps réel) -----
   startSession(courseId?: number) {
     return this.api.post<ApiResponse<{ sessionId: number }>>('/work-sessions', {
