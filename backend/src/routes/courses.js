@@ -270,6 +270,33 @@ router.put('/:id', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 /**
+ * POST /courses/:id/submit — Soumettre un cours pour validation (draft → pending)
+ */
+router.post('/:id/submit', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
+  try {
+    const course = await queryOne('SELECT id, instructor_id, status FROM courses WHERE id = ? AND deleted_at IS NULL', [req.params.id]);
+    if (!course) return res.status(404).json({ success: false, message: 'Cours non trouvé' });
+
+    if (course.instructor_id !== req.user.id && !req.user.roles.includes('admin')) {
+      return res.status(403).json({ success: false, message: 'Accès refusé' });
+    }
+    if (course.status === 'published') {
+      return res.status(400).json({ success: false, message: 'Ce cours est déjà publié' });
+    }
+    if (course.status === 'pending') {
+      return res.status(400).json({ success: false, message: 'Ce cours est déjà en attente de validation' });
+    }
+
+    await query('UPDATE courses SET status = ?, updated_at = NOW() WHERE id = ?', ['pending', req.params.id]);
+    await logAudit(req.user.id, 'SUBMIT_COURSE_FOR_REVIEW', 'cours', 'courses', req.params.id, req.ip, req.headers['user-agent']);
+
+    res.json({ success: true, message: 'Cours soumis pour validation' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur lors de la soumission' });
+  }
+});
+
+/**
  * @swagger
  * /courses/{id}:
  *   delete:

@@ -53,6 +53,10 @@ export class CourseService {
     return this.api.delete<ApiResponse<unknown>>(`/courses/${id}`);
   }
 
+  submit(id: number) {
+    return this.api.post<ApiResponse<unknown>>(`/courses/${id}/submit`, {});
+  }
+
   // ----- Sections -----
   listSections(courseId: number) {
     return this.api.get<ApiResponse<{ sections: Section[] }>>(
