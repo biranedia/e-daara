@@ -66,22 +66,59 @@ router.get('/dashboard', verifyJWT, loadRBACContext, requireRole('admin'), async
 router.get('/users', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
   try {
     const users = await query(
-      `SELECT id, email, nom, prenom, status, created_at, last_login_at
-       FROM users
-       WHERE deleted_at IS NULL
-       ORDER BY created_at DESC
-       LIMIT 100`
+      `SELECT u.id, u.email, u.nom, u.prenom, u.status, u.created_at, u.last_login_at,
+              GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ',') AS roles_str
+       FROM users u
+       LEFT JOIN user_role ur ON ur.user_id = u.id
+       LEFT JOIN roles r ON r.id = ur.role_id
+       WHERE u.deleted_at IS NULL
+       GROUP BY u.id
+       ORDER BY u.created_at DESC
+       LIMIT 200`
     );
+    const enriched = users.map(u => ({
+      ...u,
+      roles: u.roles_str ? u.roles_str.split(',') : [],
+      roles_str: undefined
+    }));
 
-    res.json({
-      success: true,
-      data: { users }
-    });
+    res.json({ success: true, data: { users: enriched } });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur'
-    });
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+});
+
+router.put('/users/:id/roles', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { roles } = req.body; // e.g. ['instructor'] or ['student','instructor']
+    if (!Array.isArray(roles)) {
+      return res.status(400).json({ success: false, message: 'roles doit être un tableau' });
+    }
+    const allowed = ['student', 'instructor', 'admin'];
+    if (roles.some(r => !allowed.includes(r))) {
+      return res.status(400).json({ success: false, message: 'Rôle invalide' });
+    }
+
+    // Fetch role IDs
+    let roleIds = [];
+    if (roles.length) {
+      const placeholders = roles.map(() => '?').join(',');
+      const roleRows = await query(`SELECT id, name FROM roles WHERE name IN (${placeholders})`, roles);
+      roleIds = roleRows.map(r => r.id);
+    }
+
+    // Replace all roles for this user
+    await query('DELETE FROM user_role WHERE user_id = ?', [userId]);
+    for (const rid of roleIds) {
+      await query('INSERT INTO user_role (user_id, role_id) VALUES (?, ?)', [userId, rid]);
+    }
+
+    await logAudit(req.user.id, 'UPDATE_USER_ROLES', 'admin', 'users', userId, req.ip, req.headers['user-agent']);
+
+    res.json({ success: true, message: 'Rôles mis à jour' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur' });
   }
 });
 

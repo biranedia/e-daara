@@ -71,5 +71,20 @@ export const INSTRUCTOR_ROUTES: Routes = [
       import('./pages/instructor-stats/instructor-stats.component').then(
         (m) => m.InstructorStatsComponent
       )
+  },
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('../profile/profile.component').then((m) => m.ProfileComponent)
+  },
+  {
+    path: 'messages',
+    loadComponent: () =>
+      import('../messages/messages.component').then((m) => m.MessagesComponent)
+  },
+  {
+    path: 'notifications',
+    loadComponent: () =>
+      import('../notifications/notifications.component').then((m) => m.NotificationsComponent)
   }
 ];

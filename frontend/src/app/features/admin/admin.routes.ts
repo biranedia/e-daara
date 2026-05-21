@@ -60,5 +60,10 @@ export const ADMIN_ROUTES: Routes = [
     path: 'messages',
     loadComponent: () =>
       import('../messages/messages.component').then((m) => m.MessagesComponent)
+  },
+  {
+    path: 'notifications',
+    loadComponent: () =>
+      import('../notifications/notifications.component').then((m) => m.NotificationsComponent)
   }
 ];

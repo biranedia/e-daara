@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Output, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,7 +34,7 @@ import { AuthService } from '@core/services/auth.service';
 
       <div class="flex items-center gap-2">
         <!-- Notifications -->
-        <a mat-icon-button routerLink="/student/notifications" aria-label="Notifications"
+        <a mat-icon-button [routerLink]="roleBase() + '/notifications'" aria-label="Notifications"
            [matBadge]="unread || null"
            [matBadgeHidden]="unread === 0"
            matBadgeColor="warn">
@@ -64,15 +64,15 @@ import { AuthService } from '@core/services/auth.service';
           </div>
         </button>
         <mat-menu #userMenu="matMenu">
-          <button mat-menu-item routerLink="/student/profile">
+          <button mat-menu-item [routerLink]="roleBase() + '/profile'">
             <mat-icon>person</mat-icon>
             <span>Mon profil</span>
           </button>
-          <button mat-menu-item routerLink="/student/messages">
+          <button mat-menu-item [routerLink]="roleBase() + '/messages'">
             <mat-icon>chat</mat-icon>
             <span>Messages</span>
           </button>
-          <button mat-menu-item routerLink="/student/notifications">
+          <button mat-menu-item [routerLink]="roleBase() + '/notifications'">
             <mat-icon>notifications</mat-icon>
             <span>Notifications</span>
           </button>
@@ -91,6 +91,13 @@ export class AppTopbarComponent {
 
   @Output() toggleSidebar = new EventEmitter<void>();
   unread = 0;
+
+  protected readonly roleBase = computed(() => {
+    const roles = this.auth.roles();
+    if (roles.includes('admin')) return '/admin';
+    if (roles.includes('instructor')) return '/instructor';
+    return '/student';
+  });
 
   initials(): string {
     const u = this.auth.currentUser();

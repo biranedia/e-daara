@@ -36,7 +36,14 @@ interface ContactUser {
       <header class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-edaara-dark">Messagerie</h1>
-          <p class="text-slate-500 text-sm">Communiquez avec vos contacts</p>
+          <p class="text-slate-500 text-sm">
+            @if (unreadCount() > 0) {
+              <span class="text-edaara-primary font-medium">{{ unreadCount() }} non lu{{ unreadCount() > 1 ? 's' : '' }}</span>
+              · {{ messages().length }} reçu{{ messages().length > 1 ? 's' : '' }} au total
+            } @else {
+              {{ messages().length }} message{{ messages().length > 1 ? 's' : '' }} reçu{{ messages().length > 1 ? 's' : '' }}
+            }
+          </p>
         </div>
         <button mat-flat-button color="primary" (click)="toggleCompose()">
           <mat-icon>edit</mat-icon>

@@ -18,9 +18,7 @@ export interface SidebarItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, RouterLinkActive, MatIconModule, MatListModule],
   template: `
-    <aside
-      class="bg-white border-r border-slate-200 flex flex-col h-full w-64"
-      [attr.aria-label]="title">
+    <aside class="bg-white border-r border-slate-200 flex flex-col h-full w-64">
 
       <!-- En-tête -->
       <div class="px-5 py-5 border-b border-slate-200">
@@ -48,22 +46,11 @@ export interface SidebarItem {
         }
       </nav>
 
-      <!-- Pied de sidebar : utilisateur + déconnexion -->
+      <!-- Pied de sidebar -->
       <div class="border-t border-slate-200">
-        <div class="px-5 py-3 flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-edaara-primary text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
-            {{ initials() }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-slate-800 truncate">
-              {{ auth.currentUser()?.prenom }} {{ auth.currentUser()?.nom }}
-            </p>
-            <p class="text-xs text-slate-500 truncate">{{ auth.currentUser()?.email }}</p>
-          </div>
-        </div>
         <button
           (click)="logout()"
-          class="w-full flex items-center gap-3 px-5 py-3 text-red-600 hover:bg-red-50 transition-colors border-t border-slate-100">
+          class="w-full flex items-center gap-3 px-5 py-3 text-red-600 hover:bg-red-50 transition-colors">
           <mat-icon aria-hidden="true">logout</mat-icon>
           <span>Déconnexion</span>
         </button>
@@ -75,13 +62,7 @@ export class AppSidebarComponent {
   @Input() title = '';
   @Input() items: SidebarItem[] = [];
 
-  protected readonly auth = inject(AuthService);
-
-  initials(): string {
-    const u = this.auth.currentUser();
-    if (!u) return '?';
-    return ((u.prenom?.[0] ?? '') + (u.nom?.[0] ?? '')).toUpperCase();
-  }
+  private readonly auth = inject(AuthService);
 
   logout(): void {
     this.auth.logout().subscribe();

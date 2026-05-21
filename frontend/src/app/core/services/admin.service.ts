@@ -39,6 +39,10 @@ export class AdminService {
     return this.api.put<ApiResponse<unknown>>(`/admin/users/${userId}/status`, { status });
   }
 
+  assignRoles(userId: number, roles: string[]) {
+    return this.api.put<ApiResponse<unknown>>(`/admin/users/${userId}/roles`, { roles });
+  }
+
   // ----- Validation des cours -----
   pendingCourses() {
     return this.api.get<ApiResponse<{ courses: Course[] }>>('/admin/courses/pending');

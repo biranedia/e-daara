@@ -126,7 +126,10 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
                       stroke-width="14"
                       [attr.stroke-dasharray]="seg.len + ' ' + circum"
                       [attr.stroke-dashoffset]="seg.offset"
-                    />
+                      class="cursor-pointer transition-opacity hover:opacity-80"
+                    >
+                      <title>{{ seg.label }} : {{ seg.value }} ({{ seg.pct }}%)</title>
+                    </circle>
                   }
                 </svg>
                 <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -159,7 +162,7 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
             <h3 class="font-semibold text-edaara-dark text-sm mb-4">Activité de la plateforme</h3>
             <div class="space-y-3">
               @for (bar of barChartData(); track bar.label) {
-                <div>
+                <div [title]="bar.label + ' : ' + bar.value + (bar.total ? ' / ' + bar.total : '') + ' (' + bar.pct + '%)'">
                   <div class="flex justify-between items-center mb-1">
                     <span class="text-xs text-slate-600">{{ bar.label }}</span>
                     <div class="text-right">
@@ -169,8 +172,8 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
                       }
                     </div>
                   </div>
-                  <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-700"
+                  <div class="h-2 bg-slate-100 rounded-full overflow-hidden cursor-pointer">
+                    <div class="h-full rounded-full transition-all duration-700 hover:opacity-80"
                          [style.width.%]="bar.pct"
                          [style.background-color]="bar.color">
                     </div>
@@ -205,15 +208,26 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
 
           <!-- Derniers utilisateurs inscrits -->
           <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold text-edaara-dark text-sm">Derniers inscrits</h3>
               <a routerLink="/admin/users"
                  class="text-xs text-edaara-primary hover:underline flex items-center gap-0.5">
                 Voir tous <mat-icon class="!text-sm">chevron_right</mat-icon>
               </a>
             </div>
+            <!-- Search bar -->
+            <div class="relative mb-3">
+              <mat-icon class="absolute left-2.5 top-1/2 -translate-y-1/2 !text-base text-slate-400 pointer-events-none">search</mat-icon>
+              <input
+                type="text"
+                [value]="userSearch()"
+                (input)="userSearch.set($any($event.target).value)"
+                placeholder="Rechercher un utilisateur…"
+                class="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:border-edaara-primary focus:bg-white transition-colors"
+              />
+            </div>
             <div class="space-y-2">
-              @for (u of stats()!.recent_users ?? []; track u.id) {
+              @for (u of filteredUsers(); track u.id) {
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 rounded-full bg-edaara-primary/10 text-edaara-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
                     {{ (u.prenom[0] + u.nom[0]).toUpperCase() }}
@@ -228,22 +242,35 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
                   </span>
                 </div>
               } @empty {
-                <p class="text-sm text-slate-400 text-center py-4">Aucune donnée</p>
+                <p class="text-sm text-slate-400 text-center py-4">
+                  {{ userSearch() ? 'Aucun résultat' : 'Aucune donnée' }}
+                </p>
               }
             </div>
           </div>
 
           <!-- Activité récente (audit feed) -->
           <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold text-edaara-dark text-sm">Activité récente</h3>
               <a routerLink="/admin/audit-logs"
                  class="text-xs text-edaara-primary hover:underline flex items-center gap-0.5">
                 Logs complets <mat-icon class="!text-sm">chevron_right</mat-icon>
               </a>
             </div>
+            <!-- Search bar -->
+            <div class="relative mb-3">
+              <mat-icon class="absolute left-2.5 top-1/2 -translate-y-1/2 !text-base text-slate-400 pointer-events-none">search</mat-icon>
+              <input
+                type="text"
+                [value]="logSearch()"
+                (input)="logSearch.set($any($event.target).value)"
+                placeholder="Filtrer par action, module, email…"
+                class="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:border-edaara-primary focus:bg-white transition-colors"
+              />
+            </div>
             <div class="space-y-2.5">
-              @for (log of stats()!.recent_logs ?? []; track $index) {
+              @for (log of filteredLogs(); track $index) {
                 <div class="flex items-start gap-2.5">
                   <div class="w-6 h-6 rounded-full mt-0.5 flex items-center justify-center flex-shrink-0"
                        [class]="log.statut === 'success' ? 'bg-green-100' : 'bg-red-100'">
@@ -263,7 +290,9 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
                   </span>
                 </div>
               } @empty {
-                <p class="text-sm text-slate-400 text-center py-4">Aucune activité</p>
+                <p class="text-sm text-slate-400 text-center py-4">
+                  {{ logSearch() ? 'Aucun résultat' : 'Aucune activité' }}
+                </p>
               }
             </div>
           </div>
@@ -331,6 +360,30 @@ export class AdminDashboardComponent implements OnInit {
   protected readonly stats = signal<AdminDashboardStats | null>(null);
   protected readonly loading = signal(true);
   protected readonly circum = C.toFixed(2);
+  protected readonly userSearch = signal('');
+  protected readonly logSearch = signal('');
+
+  protected readonly filteredUsers = computed(() => {
+    const users = this.stats()?.recent_users ?? [];
+    const q = this.userSearch().toLowerCase().trim();
+    if (!q) return users;
+    return users.filter(u =>
+      u.prenom.toLowerCase().includes(q) ||
+      u.nom.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
+    );
+  });
+
+  protected readonly filteredLogs = computed(() => {
+    const logs = this.stats()?.recent_logs ?? [];
+    const q = this.logSearch().toLowerCase().trim();
+    if (!q) return logs;
+    return logs.filter(l =>
+      l.action.toLowerCase().includes(q) ||
+      l.module.toLowerCase().includes(q) ||
+      l.email.toLowerCase().includes(q)
+    );
+  });
 
   protected readonly completionRate = computed(() => {
     const s = this.stats();
