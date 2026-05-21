@@ -50,5 +50,15 @@ export const ADMIN_ROUTES: Routes = [
       import('./pages/admin-certificates/admin-certificates.component').then(
         (m) => m.AdminCertificatesComponent
       )
+  },
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('../profile/profile.component').then((m) => m.ProfileComponent)
+  },
+  {
+    path: 'messages',
+    loadComponent: () =>
+      import('../messages/messages.component').then((m) => m.MessagesComponent)
   }
 ];

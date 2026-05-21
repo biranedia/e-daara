@@ -216,4 +216,32 @@ router.post('/change-password', verifyJWT, async (req, res) => {
   }
 });
 
+/**
+ * GET /users/search?q=term
+ * Recherche d'utilisateurs actifs (pour la messagerie, etc.)
+ */
+router.get('/search', verifyJWT, async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) {
+      return res.json({ success: true, data: { users: [] } });
+    }
+    const like = `%${q}%`;
+    const users = await query(
+      `SELECT id, nom, prenom, email, avatar
+       FROM users
+       WHERE deleted_at IS NULL
+         AND status = 'active'
+         AND id != ?
+         AND (nom LIKE ? OR prenom LIKE ? OR email LIKE ?)
+       ORDER BY prenom, nom
+       LIMIT 20`,
+      [req.user.id, like, like, like]
+    );
+    res.json({ success: true, data: { users } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur lors de la recherche' });
+  }
+});
+
 module.exports = router;

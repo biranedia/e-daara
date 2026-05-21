@@ -21,25 +21,36 @@ const router = express.Router();
  */
 router.get('/dashboard', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
   try {
-    const stats = await queryOne(
-      `SELECT
-        (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) as total_users,
-        (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
-        (SELECT COUNT(*) FROM courses WHERE status = 'published') as published_courses,
-        (SELECT COUNT(*) FROM enrollments) as total_enrollments,
-        (SELECT COUNT(*) FROM quiz_results) as total_quiz_submissions
-       FROM dual`
-    );
+    const [stats, recentUsers, recentLogs] = await Promise.all([
+      queryOne(
+        `SELECT
+          (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) AS total_users,
+          (SELECT COUNT(*) FROM users WHERE status = 'active') AS active_users,
+          (SELECT COUNT(*) FROM users WHERE status = 'inactive') AS inactive_users,
+          (SELECT COUNT(*) FROM users WHERE status = 'suspended') AS suspended_users,
+          (SELECT COUNT(*) FROM courses WHERE status = 'published') AS published_courses,
+          (SELECT COUNT(*) FROM courses WHERE status = 'pending') AS pending_courses,
+          (SELECT COUNT(*) FROM courses WHERE status = 'draft') AS draft_courses,
+          (SELECT COUNT(*) FROM enrollments) AS total_enrollments,
+          (SELECT COUNT(*) FROM enrollments WHERE status = 'completed') AS completed_enrollments,
+          (SELECT COUNT(*) FROM quiz_results) AS total_quiz_submissions
+        FROM dual`
+      ),
+      query(
+        `SELECT id, nom, prenom, email, status, created_at
+         FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 6`
+      ),
+      query(
+        `SELECT l.action, l.module, COALESCE(u.email, 'système') AS email,
+                l.created_at, l.statut
+         FROM audit_logs l LEFT JOIN users u ON l.user_id = u.id
+         ORDER BY l.created_at DESC LIMIT 8`
+      )
+    ]);
 
-    res.json({
-      success: true,
-      data: stats
-    });
+    res.json({ success: true, data: { ...stats, recent_users: recentUsers, recent_logs: recentLogs } });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur'
-    });
+    res.status(500).json({ success: false, message: 'Erreur' });
   }
 });
 

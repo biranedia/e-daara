@@ -33,7 +33,9 @@ import { GdprRequest } from '@core/models';
           </ng-container>
           <ng-container matColumnDef="user">
             <th mat-header-cell *matHeaderCellDef>Utilisateur</th>
-            <td mat-cell *matCellDef="let r">#{{ r.user_id }}</td>
+            <td mat-cell *matCellDef="let r">
+              <span class="text-sm font-medium text-edaara-dark">{{ r.user_email || ('#' + r.user_id) }}</span>
+            </td>
           </ng-container>
           <ng-container matColumnDef="type">
             <th mat-header-cell *matHeaderCellDef>Type</th>

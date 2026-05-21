@@ -19,9 +19,29 @@ export interface AuditLog {
 export interface AdminDashboardStats {
   total_users: number;
   active_users: number;
+  inactive_users: number;
+  suspended_users: number;
   published_courses: number;
+  pending_courses: number;
+  draft_courses: number;
   total_enrollments: number;
+  completed_enrollments: number;
   total_quiz_submissions: number;
+  recent_users?: Array<{ id: number; nom: string; prenom: string; email: string; status: string; created_at: string }>;
+  recent_logs?: Array<{ action: string; module: string; email: string; created_at: string; statut: string }>;
+}
+
+export interface StatsSnapshot {
+  id: number;
+  snap_date: string;
+  total_users: number;
+  total_apprenants: number;
+  total_formateurs: number;
+  total_cours: number;
+  total_inscriptions: number;
+  total_completions: number;
+  total_quizzes: number;
+  created_at: string;
 }
 
 export interface StudentDashboardStats {
@@ -51,8 +71,9 @@ export interface Setting {
 export interface GdprRequest {
   id: number;
   user_id: number;
-  type: 'export' | 'delete' | 'rectify' | 'oblivion';
-  /** Backend utilise `statut` (avec t). On garde aussi `status` en alias optionnel. */
+  user_email?: string;
+  treated_by_email?: string;
+  type: 'export' | 'delete' | 'rectify' | 'oblivion' | 'access' | 'portability';
   statut?: 'pending' | 'in_progress' | 'completed' | 'rejected';
   status: 'pending' | 'in_progress' | 'completed' | 'rejected';
   detail?: string;

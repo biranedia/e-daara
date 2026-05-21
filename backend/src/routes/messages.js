@@ -10,7 +10,9 @@ router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
   try {
     const box = (req.query.box || 'inbox').toLowerCase();
     let sql = `
-      SELECT m.*, s.email AS sender_email, r.email AS receiver_email
+      SELECT m.*,
+             s.nom AS expediteur_nom, s.prenom AS expediteur_prenom,
+             r.nom AS destinataire_nom, r.prenom AS destinataire_prenom
       FROM messages m
       LEFT JOIN users s ON m.expediteur_id = s.id
       LEFT JOIN users r ON m.destinataire_id = r.id

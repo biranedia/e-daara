@@ -35,9 +35,14 @@ export class SocialService {
     return this.api.post<ApiResponse<unknown>>('/notifications', payload);
   }
 
+  // ----- Recherche utilisateurs (pour messagerie) -----
+  searchUsers(q: string) {
+    return this.api.get<ApiResponse<{ users: { id: number; nom: string; prenom: string; email: string; avatar?: string }[] }>>('/users/search', { q });
+  }
+
   // ----- Messagerie privée -----
-  listMessages() {
-    return this.api.get<ApiResponse<{ messages: Message[] }>>('/messages');
+  listMessages(box: 'inbox' | 'sent' = 'inbox') {
+    return this.api.get<ApiResponse<{ messages: Message[] }>>('/messages', { box });
   }
 
   sendMessage(payload: { destinataire_id: number; sujet?: string; contenu: string }) {

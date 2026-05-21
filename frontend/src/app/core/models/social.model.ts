@@ -21,6 +21,8 @@ export interface Message {
   destinataire_id: number;
   expediteur_nom?: string;
   expediteur_prenom?: string;
+  destinataire_nom?: string;
+  destinataire_prenom?: string;
   sujet?: string;
   /** Côté backend la colonne est `corps`, on garde un alias `contenu` pour l'UI */
   corps?: string;

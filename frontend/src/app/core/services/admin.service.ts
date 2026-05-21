@@ -8,6 +8,7 @@ import {
   Course,
   GdprRequest,
   Setting,
+  StatsSnapshot,
   StudentDashboardStats
 } from '../models';
 
@@ -43,7 +44,7 @@ export class AdminService {
     return this.api.get<ApiResponse<{ courses: Course[] }>>('/admin/courses/pending');
   }
 
-  validateCourse(id: number, decision: 'approve' | 'reject', commentaire?: string) {
+  validateCourse(id: number, decision: 'approved' | 'rejected', commentaire?: string) {
     return this.api.post<ApiResponse<unknown>>(`/admin/courses/${id}/validate`, {
       decision,
       commentaire
@@ -57,7 +58,11 @@ export class AdminService {
 
   // ----- Statistiques globales -----
   latestStats() {
-    return this.api.get<ApiResponse<unknown>>('/stats/latest');
+    return this.api.get<ApiResponse<{ snapshot: StatsSnapshot }>>('/stats/latest');
+  }
+
+  statsHistory(limit = 30) {
+    return this.api.get<ApiResponse<{ snapshots: StatsSnapshot[] }>>('/stats/history', { limit });
   }
 
   refreshStats() {

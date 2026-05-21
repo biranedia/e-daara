@@ -43,4 +43,18 @@ router.post('/refresh', verifyJWT, loadRBACContext, requireRole('admin'), async 
   }
 });
 
+router.get('/history', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 30, 90);
+    const snapshots = await query(
+      'SELECT * FROM stats_snapshots ORDER BY snap_date DESC LIMIT ?',
+      [limit]
+    );
+    res.json({ success: true, data: { snapshots: snapshots.reverse() } });
+  } catch (error) {
+    logger.error('Erreur historique stats:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+});
+
 module.exports = router;
