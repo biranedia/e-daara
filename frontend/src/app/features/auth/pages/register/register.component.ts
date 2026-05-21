@@ -54,11 +54,17 @@ export class RegisterComponent {
     this.auth.register(this.form.getRawValue()).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/']);
+        this.router.navigate(['/student/dashboard']);
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.message ?? 'Inscription impossible.');
+        if (err?.status === 0) {
+          this.errorMsg.set('Impossible de contacter le serveur. Vérifiez que le backend est démarré.');
+        } else if (err?.status === 409) {
+          this.errorMsg.set('Cet email est déjà enregistré. Utilisez un autre email ou connectez-vous.');
+        } else {
+          this.errorMsg.set(err?.error?.message ?? 'Une erreur est survenue. Réessayez.');
+        }
       }
     });
   }

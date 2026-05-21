@@ -35,7 +35,8 @@ import { AuthService } from '@core/services/auth.service';
       <div class="flex items-center gap-2">
         <!-- Notifications -->
         <a mat-icon-button routerLink="/notifications" aria-label="Notifications"
-           [matBadge]="(unread > 0 ? unread : null) || ''"
+           [matBadge]="unread || null"
+           [matBadgeHidden]="unread === 0"
            matBadgeColor="warn">
           <mat-icon>notifications</mat-icon>
         </a>

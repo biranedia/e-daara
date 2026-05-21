@@ -59,12 +59,27 @@ export class LoginComponent {
     this.auth.login(email, password).subscribe({
       next: () => {
         this.loading.set(false);
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
-        this.router.navigateByUrl(returnUrl);
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        if (returnUrl) {
+          this.router.navigateByUrl(returnUrl);
+        } else {
+          const roles = this.auth.roles();
+          if (roles.includes('admin')) {
+            this.router.navigate(['/admin/dashboard']);
+          } else if (roles.includes('instructor')) {
+            this.router.navigate(['/instructor/dashboard']);
+          } else {
+            this.router.navigate(['/student/dashboard']);
+          }
+        }
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.message ?? 'Connexion impossible. Vérifiez vos identifiants.');
+        if (err?.status === 0) {
+          this.errorMsg.set('Impossible de contacter le serveur. Vérifiez que le backend est démarré.');
+        } else {
+          this.errorMsg.set(err?.error?.message ?? 'Connexion impossible. Vérifiez vos identifiants.');
+        }
       }
     });
   }

@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { TokenStorageService } from './token-storage.service';
 import { ApiResponse, AuthResponse, User } from '../models/user.model';
@@ -33,7 +33,8 @@ export class AuthService {
   readonly currentUser$ = this.user$.asObservable();
 
   /**
-   * Inscription locale.
+   * Inscription locale — attend le chargement du profil complet (avec rôles)
+   * avant de compléter l'Observable.
    */
   register(payload: {
     nom: string;
@@ -42,16 +43,28 @@ export class AuthService {
     password: string;
   }): Observable<AuthResponse> {
     return this.api.post<AuthResponse>('/auth/register', payload).pipe(
-      tap((res) => this.handleAuthSuccess(res))
+      tap((res) => this.handleAuthSuccess(res)),
+      switchMap((res) =>
+        this.loadProfile().pipe(
+          map(() => res),
+          catchError(() => of(res))
+        )
+      )
     );
   }
 
   /**
-   * Connexion email / mot de passe.
+   * Connexion email / mot de passe — attend le profil complet (avec rôles).
    */
   login(email: string, password: string): Observable<AuthResponse> {
     return this.api.post<AuthResponse>('/auth/login', { email, password }).pipe(
-      tap((res) => this.handleAuthSuccess(res))
+      tap((res) => this.handleAuthSuccess(res)),
+      switchMap((res) =>
+        this.loadProfile().pipe(
+          map(() => res),
+          catchError(() => of(res))
+        )
+      )
     );
   }
 
@@ -136,8 +149,8 @@ export class AuthService {
   }
 
   /**
-   * Stocke les tokens à l'issue d'un login / register réussi
-   * puis déclenche le chargement du profil pour récupérer les rôles.
+   * Stocke les tokens et les informations minimales de l'utilisateur.
+   * Le profil complet (avec rôles) est chargé dans le pipe login/register.
    */
   private handleAuthSuccess(res: AuthResponse): void {
     if (!res?.success || !res.data) return;
@@ -152,8 +165,5 @@ export class AuthService {
     this.storage.saveUser(minimalUser);
     this.userSignal.set(minimalUser);
     this.user$.next(minimalUser);
-
-    // Charger profil complet (avec rôles) en arrière-plan
-    this.loadProfile().subscribe({ error: () => void 0 });
   }
 }
