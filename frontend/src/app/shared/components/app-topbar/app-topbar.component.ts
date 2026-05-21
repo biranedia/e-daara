@@ -34,7 +34,7 @@ import { AuthService } from '@core/services/auth.service';
 
       <div class="flex items-center gap-2">
         <!-- Notifications -->
-        <a mat-icon-button routerLink="/notifications" aria-label="Notifications"
+        <a mat-icon-button routerLink="/student/notifications" aria-label="Notifications"
            [matBadge]="unread || null"
            [matBadgeHidden]="unread === 0"
            matBadgeColor="warn">
@@ -64,11 +64,15 @@ import { AuthService } from '@core/services/auth.service';
           </div>
         </button>
         <mat-menu #userMenu="matMenu">
-          <button mat-menu-item routerLink="/profile">
+          <button mat-menu-item routerLink="/student/profile">
             <mat-icon>person</mat-icon>
             <span>Mon profil</span>
           </button>
-          <button mat-menu-item routerLink="/notifications">
+          <button mat-menu-item routerLink="/student/messages">
+            <mat-icon>chat</mat-icon>
+            <span>Messages</span>
+          </button>
+          <button mat-menu-item routerLink="/student/notifications">
             <mat-icon>notifications</mat-icon>
             <span>Notifications</span>
           </button>

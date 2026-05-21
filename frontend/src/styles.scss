@@ -1,5 +1,5 @@
 /* ============================================
-   Angular Material theme (prebuilt - simple)
+   Angular Material theme
    ============================================ */
 @use '@angular/material' as mat;
 
@@ -24,11 +24,19 @@ $edaara-theme: mat.m2-define-light-theme((
 @include mat.all-component-themes($edaara-theme);
 
 /* ============================================
-   Tailwind
+   Tailwind (sans preflight — désactivé dans tailwind.config.js
+   pour éviter le conflit avec Angular Material MDC)
    ============================================ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================
+   Reset minimal (remplace le preflight Tailwind)
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
 /* ============================================
    Styles globaux
@@ -36,27 +44,29 @@ $edaara-theme: mat.m2-define-light-theme((
 html, body {
   height: 100%;
   margin: 0;
+  padding: 0;
   font-family: 'Inter', system-ui, sans-serif;
   background-color: #f8fafc;
   color: #0f172a;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
+img, svg, video {
+  display: block;
+  max-width: 100%;
 }
 
 /* ============================================
    Accessibilité WCAG 2.1 AA
    ============================================ */
 
-/* Focus visible renforcé */
 *:focus-visible {
   outline: 3px solid #f59e0b;
   outline-offset: 2px;
 }
 
-/* Skip-link visible au focus uniquement */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -69,7 +79,6 @@ html, body {
   border: 0;
 }
 
-/* Réduction des animations pour utilisateurs sensibles */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -78,7 +87,6 @@ html, body {
   }
 }
 
-/* Contraste suffisant sur les liens */
 a {
   color: #0d9488;
   text-decoration: none;
@@ -88,35 +96,23 @@ a:hover {
 }
 
 /* ============================================
-   Correctifs Angular Material + Tailwind
+   Correctifs layout
    ============================================ */
 
-/* Empêcher mat-form-field de déborder horizontalement */
-mat-form-field {
-  max-width: 100%;
-}
-
-/* Corriger l'overflow des tables Material sur mobile */
+/* Tables Material scrollables sur mobile */
 .mat-mdc-table-container,
 .mat-mdc-paginator {
   overflow-x: auto;
 }
 
-/* Empêcher les mat-card et mat-expansion-panel de déborder */
-mat-card, mat-expansion-panel {
-  overflow: hidden;
-}
-
-/* Fixer le z-index du mat-menu pour qu'il ne déborde pas */
+/* z-index overlay menus */
 .cdk-overlay-container {
   z-index: 1000;
 }
 
 /* ============================================
-   Lignes tronquées (line-clamp)
+   Lignes tronquées
    ============================================ */
-
-/* Lignes tronquées (line-clamp) */
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;

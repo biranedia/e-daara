@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { Course, Section } from '@core/models';
       @if (course(); as c) {
         <!-- En-tête -->
         <header class="bg-gradient-to-br from-edaara-primary to-teal-700 text-white rounded-2xl p-8">
-          <a routerLink="/catalogue" class="text-teal-100 text-sm hover:underline">← Retour au catalogue</a>
+          <button (click)="goBack()" class="text-teal-100 text-sm hover:underline bg-transparent border-none cursor-pointer p-0">← Retour au catalogue</button>
           <h1 class="text-3xl md:text-4xl font-bold mt-4">{{ c.titre }}</h1>
           <p class="text-teal-100 mt-2">{{ c.description }}</p>
           <div class="flex flex-wrap gap-4 mt-4 text-sm">
@@ -93,6 +93,7 @@ import { Course, Section } from '@core/models';
 export class CourseDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly courseService = inject(CourseService);
   private readonly enrollment = inject(EnrollmentService);
   private readonly snack = inject(MatSnackBar);
@@ -119,6 +120,10 @@ export class CourseDetailComponent implements OnInit {
       },
       error: () => void 0
     });
+  }
+
+  goBack(): void {
+    this.location.back();
   }
 
   enroll(): void {

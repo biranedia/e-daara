@@ -2,18 +2,6 @@ import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth.guard';
 import { roleGuard } from '@core/guards/role.guard';
 
-/**
- * Routes principales de l'application E-DAARA.
- *
- * Architecture :
- *   /                → layout public (visiteur)
- *      ├── catalogue, courses/:id, about
- *   /auth/*          → pages auth (sans layout)
- *   /admin/*         → layout admin (admin only)
- *   /instructor/*    → layout formateur (instructor + admin)
- *   /student/*       → layout apprenant (tous rôles authentifiés)
- *   /forum, /messages, /notifications, /profile → routes transverses (authentifié)
- */
 export const routes: Routes = [
   // --- Public ---
   {
@@ -53,7 +41,7 @@ export const routes: Routes = [
       import('@features/instructor/instructor.routes').then((m) => m.INSTRUCTOR_ROUTES)
   },
 
-  // --- Étudiant ---
+  // --- Étudiant + routes transverses (profile, messages, notifications, forum, quiz) ---
   {
     path: 'student',
     canActivate: [authGuard],
@@ -63,40 +51,6 @@ export const routes: Routes = [
       ),
     loadChildren: () =>
       import('@features/student/student.routes').then((m) => m.STUDENT_ROUTES)
-  },
-
-  // --- Routes transverses authentifiées ---
-  {
-    path: 'profile',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('@features/profile/profile.component').then((m) => m.ProfileComponent)
-  },
-  {
-    path: 'forum',
-    canActivate: [authGuard],
-    loadChildren: () =>
-      import('@features/forum/forum.routes').then((m) => m.FORUM_ROUTES)
-  },
-  {
-    path: 'messages',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('@features/messages/messages.component').then((m) => m.MessagesComponent)
-  },
-  {
-    path: 'notifications',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('@features/notifications/notifications.component').then((m) => m.NotificationsComponent)
-  },
-  {
-    path: 'quiz/:id',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('@features/student/pages/student-quiz/student-quiz.component').then(
-        (m) => m.StudentQuizComponent
-      )
   },
 
   { path: '**', redirectTo: '' }

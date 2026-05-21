@@ -22,6 +22,8 @@ export class InstructorLayoutComponent {
     { label: 'Mes parcours', icon: 'route', route: '/instructor/paths' },
     { label: 'Évaluations', icon: 'quiz', route: '/instructor/assessments' },
     { label: 'Annonces', icon: 'campaign', route: '/instructor/announcements' },
-    { label: 'Statistiques', icon: 'insights', route: '/instructor/stats' }
+    { label: 'Statistiques', icon: 'insights', route: '/instructor/stats' },
+    { label: 'Messages', icon: 'chat', route: '/student/messages' },
+    { label: 'Mon profil', icon: 'manage_accounts', route: '/student/profile' }
   ];
 }

@@ -64,6 +64,10 @@ import { AuthService } from '@core/services/auth.service';
                   <mat-icon>person</mat-icon>
                   Mon espace
                 </a>
+                <a mat-menu-item routerLink="/student/profile">
+                  <mat-icon>manage_accounts</mat-icon>
+                  Mon profil
+                </a>
                 <button mat-menu-item (click)="auth.logout().subscribe()">
                   <mat-icon>logout</mat-icon>
                   Déconnexion

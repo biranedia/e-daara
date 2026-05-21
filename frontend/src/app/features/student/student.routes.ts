@@ -40,5 +40,36 @@ export const STUDENT_ROUTES: Routes = [
     path: 'badges',
     loadComponent: () =>
       import('./pages/student-badges/student-badges.component').then((m) => m.StudentBadgesComponent)
+  },
+  {
+    path: 'catalogue',
+    loadComponent: () =>
+      import('@features/public/pages/catalogue/catalogue.component').then((m) => m.CatalogueComponent)
+  },
+  {
+    path: 'courses-public/:id',
+    loadComponent: () =>
+      import('@features/public/pages/course-detail/course-detail.component').then((m) => m.CourseDetailComponent)
+  },
+  // Routes transverses (partagées par tous les rôles authentifiés)
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('@features/profile/profile.component').then((m) => m.ProfileComponent)
+  },
+  {
+    path: 'messages',
+    loadComponent: () =>
+      import('@features/messages/messages.component').then((m) => m.MessagesComponent)
+  },
+  {
+    path: 'notifications',
+    loadComponent: () =>
+      import('@features/notifications/notifications.component').then((m) => m.NotificationsComponent)
+  },
+  {
+    path: 'forum',
+    loadChildren: () =>
+      import('@features/forum/forum.routes').then((m) => m.FORUM_ROUTES)
   }
 ];

@@ -60,7 +60,7 @@ import { Enrollment, StudentDashboardStats } from '@core/models';
             <div class="col-span-full bg-white rounded-xl p-12 text-center shadow-sm border border-slate-100">
               <mat-icon class="!w-12 !h-12 !text-5xl text-slate-300">school</mat-icon>
               <p class="text-slate-600 mt-3">Vous n'êtes inscrit à aucun cours.</p>
-              <a mat-flat-button color="primary" routerLink="/catalogue" class="mt-4">
+              <a mat-flat-button color="primary" routerLink="/student/catalogue" class="mt-4">
                 Découvrir le catalogue
               </a>
             </div>

@@ -19,11 +19,13 @@ export class StudentLayoutComponent {
   protected readonly items: SidebarItem[] = [
     { label: 'Tableau de bord', icon: 'dashboard', route: '/student/dashboard' },
     { label: 'Mes cours', icon: 'school', route: '/student/courses' },
-    { label: 'Catalogue', icon: 'explore', route: '/catalogue' },
+    { label: 'Catalogue', icon: 'explore', route: '/student/catalogue' },
     { label: 'Mes parcours', icon: 'route', route: '/student/paths' },
     { label: 'Certificats', icon: 'workspace_premium', route: '/student/certificates' },
     { label: 'Badges', icon: 'military_tech', route: '/student/badges' },
-    { label: 'Forum', icon: 'forum', route: '/forum' },
-    { label: 'Messages', icon: 'mail', route: '/messages' }
+    { label: 'Forum', icon: 'forum', route: '/student/forum' },
+    { label: 'Messages', icon: 'chat', route: '/student/messages' },
+    { label: 'Notifications', icon: 'notifications', route: '/student/notifications' },
+    { label: 'Mon profil', icon: 'manage_accounts', route: '/student/profile' }
   ];
 }

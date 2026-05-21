@@ -25,6 +25,7 @@ export class AdminLayoutComponent {
     { label: 'Paramètres', icon: 'settings', route: '/admin/settings' },
     { label: 'RGPD / CDP', icon: 'privacy_tip', route: '/admin/gdpr' },
     { label: 'Badges', icon: 'emoji_events', route: '/admin/badges' },
-    { label: 'Certificats', icon: 'workspace_premium', route: '/admin/certificates' }
+    { label: 'Certificats', icon: 'workspace_premium', route: '/admin/certificates' },
+    { label: 'Mon profil', icon: 'manage_accounts', route: '/student/profile' }
   ];
 }
