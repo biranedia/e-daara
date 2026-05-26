@@ -3,9 +3,11 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { ApiResponse, Course, Section, Lesson, Resource } from '../models';
 
+// Backend spread le cours directement dans data pour GET /public/courses/:id
+type PublicCourseResponse = Course & { sections?: Section[] };
+
 /**
  * Service Cours — branché sur /api/courses, /api/sections, /api/lessons, /api/public/courses.
- * Aligné sur les routes du backend.
  */
 @Injectable({ providedIn: 'root' })
 export class CourseService {
@@ -23,7 +25,8 @@ export class CourseService {
   }
 
   getPublicCourse(id: number) {
-    return this.api.get<ApiResponse<{ course: Course; sections?: Section[] }>>(`/public/courses/${id}`);
+    // Backend : res.json({ success: true, data: { ...course, sections } })
+    return this.api.get<ApiResponse<PublicCourseResponse>>(`/public/courses/${id}`);
   }
 
   listCategories() {
@@ -54,7 +57,10 @@ export class CourseService {
   }
 
   submit(id: number) {
-    return this.api.post<ApiResponse<unknown>>(`/courses/${id}/submit`, {});
+    return this.api.post<ApiResponse<unknown> & {
+      decision?: 'approved' | 'rejected';
+      failed_criteria?: string[];
+    }>(`/courses/${id}/submit`, {});
   }
 
   // ----- Sections -----
@@ -66,7 +72,8 @@ export class CourseService {
   }
 
   getSection(id: number) {
-    return this.api.get<ApiResponse<{ section: Section & { lessons?: Lesson[] } }>>(`/sections/${id}`);
+    // Backend : { section, lessons } — lessons séparé, PAS imbriqué dans section
+    return this.api.get<ApiResponse<{ section: Section; lessons: Lesson[] }>>(`/sections/${id}`);
   }
 
   createSection(payload: Partial<Section>) {
@@ -90,21 +97,22 @@ export class CourseService {
   }
 
   getLesson(id: number) {
-    return this.api.get<ApiResponse<{ lesson: Lesson }>>(`/lessons/${id}`);
+    // Backend : { lesson, resources }
+    return this.api.get<ApiResponse<{ lesson: Lesson; resources: Resource[] }>>(`/lessons/${id}`);
   }
 
   createLesson(payload: Partial<Lesson>) {
-    // Backend attend `description`, `contenu`, `is_free`, `status` en plus.
-    // On envoie un payload complet avec valeurs par défaut sensées.
+    // Backend requiert : section_id + course_id + titre (sans course_id => 400)
     return this.api.post<ApiResponse<{ lessonId: number }>>('/lessons', {
       section_id: payload.section_id,
+      course_id: payload.course_id,
       titre: payload.titre,
-      description: (payload as Lesson & { description?: string }).description ?? '',
+      description: payload.description ?? '',
       contenu: payload.contenu ?? '',
       duree: payload.duree ?? 0,
       ordre: payload.ordre ?? 0,
-      is_free: true,
-      status: 'draft'
+      is_free: payload.is_free ?? true,
+      status: payload.status ?? 'draft'
     });
   }
 

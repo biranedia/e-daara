@@ -88,17 +88,17 @@ import { AdminService } from '@core/services/admin.service';
               Conformément à la loi sénégalaise n°2008-12, vous pouvez à tout moment :
             </p>
             <div class="grid sm:grid-cols-2 gap-3">
-              <button mat-stroked-button (click)="requestGdpr('export')">
-                <mat-icon>download</mat-icon> Exporter mes données
+              <button mat-stroked-button (click)="requestGdpr('portability')">
+                <mat-icon>download</mat-icon> Portabilité de mes données
+              </button>
+              <button mat-stroked-button (click)="requestGdpr('access')">
+                <mat-icon>visibility</mat-icon> Accéder à mes données
               </button>
               <button mat-stroked-button (click)="requestGdpr('rectify')">
                 <mat-icon>edit</mat-icon> Demander une rectification
               </button>
               <button mat-stroked-button color="warn" (click)="requestGdpr('delete')">
                 <mat-icon>delete_forever</mat-icon> Supprimer mon compte
-              </button>
-              <button mat-stroked-button color="warn" (click)="requestGdpr('oblivion')">
-                <mat-icon>history_toggle_off</mat-icon> Droit à l'oubli
               </button>
             </div>
           </div>
@@ -161,7 +161,7 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  requestGdpr(type: 'export' | 'delete' | 'rectify' | 'oblivion'): void {
+  requestGdpr(type: 'access' | 'delete' | 'rectify' | 'portability'): void {
     const motif = prompt('Motif de la demande (facultatif) :') ?? undefined;
     this.admin.createGdprRequest(type, motif).subscribe({
       next: () => this.snack.open("Demande envoyée, l'admin vous répondra", 'OK', { duration: 3000 }),

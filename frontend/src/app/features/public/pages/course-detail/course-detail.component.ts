@@ -107,7 +107,8 @@ export class CourseDetailComponent implements OnInit {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.courseService.getPublicCourse(id).subscribe({
       next: (res) => {
-        if (res.data?.course) this.course.set(res.data.course);
+        // Backend spread le cours dans data : { ...course, sections }
+        if (res.data) this.course.set(res.data);
         if (res.data?.sections) this.sections.set(res.data.sections);
       }
     });

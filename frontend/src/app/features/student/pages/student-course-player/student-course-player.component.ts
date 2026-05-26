@@ -151,7 +151,8 @@ export class StudentCoursePlayerComponent implements OnInit {
   ngOnInit(): void {
     this.courseService.getPublicCourse(this.courseId).subscribe({
       next: (res) => {
-        if (res.data?.course) this.course.set(res.data.course);
+        // Backend spread le cours dans data : { ...course, sections }
+        if (res.data) this.course.set(res.data);
       }
     });
     this.loadStructure();
@@ -239,6 +240,7 @@ export class StudentCoursePlayerComponent implements OnInit {
   }
 
   iconFor(t?: string): string {
-    return { video: 'play_circle', pdf: 'picture_as_pdf', texte: 'article', lien: 'link', projet: 'assignment' }[t ?? ''] ?? 'article';
+    return ({ video: 'play_circle', pdf: 'picture_as_pdf', texte: 'article', lien: 'link', projet: 'code' } as Record<string, string>)[t ?? '']
+      ?? 'play_circle';
   }
 }

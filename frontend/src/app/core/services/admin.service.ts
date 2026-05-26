@@ -6,6 +6,7 @@ import {
   ApiResponse,
   AuditLog,
   Course,
+  CourseValidation,
   GdprRequest,
   Setting,
   StatsSnapshot,
@@ -35,6 +36,21 @@ export class AdminService {
     return this.api.get<ApiResponse<{ users: AdminUserRow[] }>>('/admin/users');
   }
 
+  /** Créer un utilisateur depuis l'interface admin */
+  createUser(payload: { nom: string; prenom: string; email: string; password: string; roles: string[] }) {
+    return this.api.post<ApiResponse<{ userId: number }>>('/admin/users', payload);
+  }
+
+  /** Modifier nom, prénom, email (et optionnellement le mot de passe) d'un utilisateur */
+  updateUser(userId: number, payload: { nom?: string; prenom?: string; email?: string; password?: string }) {
+    return this.api.put<ApiResponse<unknown>>(`/admin/users/${userId}`, payload);
+  }
+
+  /** Suppression douce (soft delete) d'un utilisateur */
+  deleteUser(userId: number) {
+    return this.api.delete<ApiResponse<unknown>>(`/admin/users/${userId}`);
+  }
+
   updateUserStatus(userId: number, status: AdminUserRow['status']) {
     return this.api.put<ApiResponse<unknown>>(`/admin/users/${userId}/status`, { status });
   }
@@ -55,7 +71,12 @@ export class AdminService {
     });
   }
 
-  // ----- Audit logs (cœur souveraineté) -----
+  /** Historique complet des validations automatiques et manuelles */
+  validationHistory() {
+    return this.api.get<ApiResponse<{ validations: CourseValidation[] }>>('/admin/courses/validations');
+  }
+
+  // ----- Audit logs (coeur souveraineté) -----
   auditLogs() {
     return this.api.get<ApiResponse<{ logs: AuditLog[] }>>('/admin/audit-logs');
   }
@@ -91,13 +112,11 @@ export class AdminService {
     return this.api.get<ApiResponse<{ requests: GdprRequest[] }>>('/gdpr');
   }
 
-  createGdprRequest(type: GdprRequest['type'], motif?: string) {
-    // Backend attend `detail` (pas `motif`)
-    return this.api.post<ApiResponse<{ requestId: number }>>('/gdpr', { type, detail: motif });
+  createGdprRequest(type: GdprRequest['type'], detail?: string) {
+    return this.api.post<ApiResponse<{ requestId: number }>>('/gdpr', { type, detail });
   }
 
-  updateGdprStatus(id: number, status: GdprRequest['status']) {
-    // Backend attend `statut` (avec t)
-    return this.api.put<ApiResponse<unknown>>(`/gdpr/${id}/status`, { statut: status });
+  updateGdprStatus(id: number, statut: GdprRequest['statut']) {
+    return this.api.put<ApiResponse<unknown>>(`/gdpr/${id}/status`, { statut });
   }
 }
