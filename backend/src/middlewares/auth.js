@@ -30,11 +30,15 @@ const verifyJWT = async (req, res, next) => {
     // Vérifier et décoder le token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Récupérer l'utilisateur en BD pour valider son statut
+    // Récupérer l'utilisateur en BD pour valider son statut + ses rôles en une seule requête
     const user = await queryOne(
-      `SELECT u.id, u.email, u.nom, u.prenom, u.status 
-       FROM users u 
-       WHERE u.id = ? AND u.deleted_at IS NULL`,
+      `SELECT u.id, u.email, u.nom, u.prenom, u.status,
+              GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ',') AS roles_str
+       FROM users u
+       LEFT JOIN user_role ur ON ur.user_id = u.id
+       LEFT JOIN roles r ON r.id = ur.role_id
+       WHERE u.id = ? AND u.deleted_at IS NULL
+       GROUP BY u.id`,
       [decoded.userId]
     );
 
@@ -56,13 +60,13 @@ const verifyJWT = async (req, res, next) => {
       });
     }
 
-    // Attacher les données utilisateur à la requête
+    // Attacher les données utilisateur à la requête (rôles toujours disponibles)
     req.user = {
       id: user.id,
       email: user.email,
       nom: user.nom,
       prenom: user.prenom,
-      roles: [] // À charger depuis user_role si besoin
+      roles: user.roles_str ? user.roles_str.split(',') : []
     };
 
     next();
@@ -165,9 +169,10 @@ const generateRefreshToken = (userId) => {
 };
 
 /**
- * Vérifier le refresh token et générer un nouveau access token
+ * Vérifier le refresh token et générer un nouveau access token.
+ * Vérifie : signature JWT, type, existence + non-révocation en BD, statut user.
  * @param {string} refreshToken - Token à vérifier
- * @returns {Promise} Nouvel access token
+ * @returns {Promise<string>} Nouvel access token
  */
 const refreshAccessToken = async (refreshToken) => {
   try {
@@ -175,6 +180,19 @@ const refreshAccessToken = async (refreshToken) => {
 
     if (decoded.type !== 'refresh') {
       throw new Error('Token n\'est pas un refresh token');
+    }
+
+    // Vérifier que le token existe en BD et n'a pas été révoqué (logout)
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const storedToken = await queryOne(
+      `SELECT id FROM refresh_tokens
+       WHERE user_id = ? AND token_hash = ? AND revoked = FALSE AND expires_at > NOW()`,
+      [decoded.userId, tokenHash]
+    );
+
+    if (!storedToken) {
+      throw new Error('Refresh token révoqué ou inexistant en base de données');
     }
 
     // Vérifier que l'utilisateur existe et est actif

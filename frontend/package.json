@@ -1,7 +1,7 @@
 {
   "name": "e-daara-frontend",
   "version": "1.0.0",
-  "description": "Frontend Angular pour E-DAARA — plateforme d'apprentissage en ligne",
+  "description": "Frontend Angular pour E-DAARAnpm — plateforme d'apprentissage en ligne",
   "author": "Birane Diao",
   "license": "AGPL-3.0",
   "scripts": {

@@ -28,7 +28,7 @@ import { Enrollment } from '@core/models';
             <div class="p-4 flex-1 flex flex-col">
               <h3 class="font-bold text-edaara-dark">{{ e.course_titre || ('Cours #' + e.course_id) }}</h3>
               <p class="text-xs text-slate-500 mt-1">
-                Inscrit le {{ e.date_inscription | date:'dd/MM/yyyy' }}
+                Inscrit le {{ e.enrolled_at | date:'dd/MM/yyyy' }}
               </p>
               <mat-progress-bar mode="determinate" [value]="e.progression" class="mt-3"></mat-progress-bar>
               <div class="flex justify-between text-xs text-slate-500 mt-2 mb-3">

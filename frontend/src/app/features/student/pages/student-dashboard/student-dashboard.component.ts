@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { AdminService } from '@core/services/admin.service';
 import { EnrollmentService } from '@core/services/enrollment.service';
 import { Enrollment, StudentDashboardStats } from '@core/models';
 
@@ -71,14 +70,13 @@ import { Enrollment, StudentDashboardStats } from '@core/models';
   `
 })
 export class StudentDashboardComponent implements OnInit {
-  private readonly admin = inject(AdminService);
   private readonly enrollment = inject(EnrollmentService);
 
   protected readonly stats = signal<StudentDashboardStats | null>(null);
   protected readonly enrollments = signal<Enrollment[]>([]);
 
   ngOnInit(): void {
-    this.admin.studentDashboard().subscribe({
+    this.enrollment.studentDashboard().subscribe({
       next: (res) => this.stats.set(res.data ?? null)
     });
     this.enrollment.listMine().subscribe({

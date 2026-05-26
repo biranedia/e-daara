@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { ApiResponse, Enrollment, LessonProgress, WorkSession } from '../models';
+import { ApiResponse, Enrollment, LessonProgress, StudentDashboardStats, WorkSession } from '../models';
 
 /**
  * Service Inscriptions + Progression + Sessions de travail.
@@ -12,6 +12,14 @@ export class EnrollmentService {
 
   listMine() {
     return this.api.get<ApiResponse<{ enrollments: Enrollment[] }>>('/enrollments');
+  }
+
+  /**
+   * Tableau de bord apprenant : stats personnelles (cours suivis, terminés, progression moy.)
+   * Endpoint : GET /api/dashboard/student
+   */
+  studentDashboard() {
+    return this.api.get<ApiResponse<StudentDashboardStats>>('/dashboard/student');
   }
 
   enroll(courseId: number) {
@@ -38,7 +46,6 @@ export class EnrollmentService {
   }
 
   setLessonProgress(payload: LessonProgress & { enrollment_id?: number; temps_passe?: number }) {
-    // Backend attend { lesson_id, enrollment_id, completed (boolean), temps_passe }
     return this.api.post<ApiResponse<unknown>>('/progress/lessons', {
       lesson_id: payload.lesson_id,
       enrollment_id: payload.enrollment_id,
@@ -62,12 +69,12 @@ export class EnrollmentService {
   // ----- Sessions de travail (souveraineté : suivi temps réel) -----
   startSession(courseId?: number) {
     return this.api.post<ApiResponse<{ sessionId: number }>>('/work-sessions', {
-      course_id: courseId
+      course_id: courseId ?? null
     });
   }
 
-  stopSession(id: number) {
-    return this.api.put<ApiResponse<unknown>>(`/work-sessions/${id}/stop`, {});
+  stopSession(sessionId: number) {
+    return this.api.put<ApiResponse<unknown>>(`/work-sessions/${sessionId}/stop`, {});
   }
 
   listSessions() {

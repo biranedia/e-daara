@@ -39,6 +39,8 @@ export interface Section {
 export interface Lesson {
   id: number;
   section_id: number;
+  /** Requis à la création — backend exige section_id + course_id + titre */
+  course_id?: number;
   titre: string;
   slug?: string;
   description?: string;
@@ -49,6 +51,9 @@ export interface Lesson {
   ordre: number;
   is_free?: boolean;
   status?: 'draft' | 'published' | 'archived';
+  // Champs joints (GET /lessons)
+  section_titre?: string;
+  course_titre?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -56,14 +61,22 @@ export interface Lesson {
 export interface Resource {
   id: number;
   lesson_id?: number;
-  course_id?: number;
+  cours_id?: number;
   titre: string;
   description?: string;
   type: 'video' | 'pdf' | 'lien' | 'image' | 'audio' | 'mini_projet' | 'autre';
   url: string;
-  taille?: number;
+  /** Colonne réelle : resources.taille_ko */
+  taille_ko?: number;
+  /** Durée en secondes */
+  duree_sec?: number;
+  /** Téléchargeable */
+  is_telechar?: boolean;
   ordre?: number;
+  // Champ joint
+  lesson_titre?: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface Category {

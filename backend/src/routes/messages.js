@@ -9,6 +9,8 @@ const router = express.Router();
 router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
   try {
     const box = (req.query.box || 'inbox').toLowerCase();
+    const q   = (req.query.q || '').trim();
+
     let sql = `
       SELECT m.*,
              s.nom AS expediteur_nom, s.prenom AS expediteur_prenom,
@@ -24,13 +26,24 @@ router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
       sql += ' AND m.expediteur_id = ?';
       params.push(req.user.id);
     } else if (box === 'all' && req.user.roles.includes('admin')) {
-      // no extra filter
+      // admin voit tout sans filtre utilisateur
     } else {
       sql += ' AND m.destinataire_id = ?';
       params.push(req.user.id);
     }
 
-    sql += ' ORDER BY m.created_at DESC LIMIT 200';
+    // Recherche full-text sur sujet, corps, nom expéditeur/destinataire
+    if (q) {
+      sql += ` AND (
+        m.sujet LIKE ? OR m.corps LIKE ?
+        OR s.nom LIKE ? OR s.prenom LIKE ? OR s.email LIKE ?
+        OR r.nom LIKE ? OR r.prenom LIKE ? OR r.email LIKE ?
+      )`;
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like, like, like, like);
+    }
+
+    sql += ' ORDER BY m.created_at DESC LIMIT 300';
     const messages = await query(sql, params);
     res.json({ success: true, data: { messages } });
   } catch (error) {

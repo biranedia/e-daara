@@ -2,6 +2,8 @@ const express = require('express');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, logAudit } = require('../middlewares/rbac');
 const { query, queryOne, getConnection } = require('../config/database');
+const { evaluateBadgesForUser } = require('../utils/badgeEngine');
+const { issueCertificateIfEligible } = require('../utils/certificateEngine');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -88,7 +90,10 @@ router.post('/', verifyJWT, loadRBACContext, async (req, res) => {
 
     await logAudit(req.user.id, 'ENROLL_COURSE', 'student', 'enrollments', enrollmentId, req.ip, req.headers['user-agent']);
 
-    res.status(200).json({
+    // Badge "première inscription" et badges "cours_inscrits"
+    evaluateBadgesForUser(req.user.id, query, queryOne).catch(() => {});
+
+    res.status(201).json({
       success: true,
       message: 'Inscription réussie',
       data: { enrollmentId }
@@ -152,7 +157,7 @@ router.put('/:id/progress', verifyJWT, loadRBACContext, async (req, res) => {
 
 router.post('/:id/complete', verifyJWT, loadRBACContext, async (req, res) => {
   try {
-    const enrollment = await queryOne('SELECT id, user_id FROM enrollments WHERE id = ?', [req.params.id]);
+    const enrollment = await queryOne('SELECT id, user_id, course_id FROM enrollments WHERE id = ?', [req.params.id]);
     if (!enrollment) {
       return res.status(404).json({ success: false, message: 'Inscription non trouvée' });
     }
@@ -170,7 +175,25 @@ router.post('/:id/complete', verifyJWT, loadRBACContext, async (req, res) => {
 
     await logAudit(req.user.id, 'COMPLETE_ENROLLMENT', 'student', 'enrollments', req.params.id, req.ip, req.headers['user-agent']);
 
-    res.json({ success: true, message: 'Inscription terminée avec succès' });
+    // ── Certificat automatique ────────────────────────────────────────────
+    // Généré en parallèle sans bloquer la réponse HTTP
+    const certPromise = issueCertificateIfEligible(
+      enrollment.user_id, enrollment.course_id, query, queryOne
+    ).catch(() => ({ issued: false }));
+
+    // ── Badges automatiques ───────────────────────────────────────────────
+    evaluateBadgesForUser(enrollment.user_id, query, queryOne).catch(() => {});
+
+    // On attend uniquement le certificat pour l'inclure dans la réponse
+    const certResult = await certPromise;
+
+    res.json({
+      success: true,
+      message: 'Cours terminé avec succès !',
+      certificate: certResult.issued
+        ? { issued: true, numero_serie: certResult.numero_serie, mention: certResult.mention }
+        : { issued: false, reason: certResult.reason }
+    });
   } catch (error) {
     logger.error('Erreur completion inscription:', error);
     res.status(500).json({ success: false, message: 'Erreur lors de la finalisation de l inscription' });

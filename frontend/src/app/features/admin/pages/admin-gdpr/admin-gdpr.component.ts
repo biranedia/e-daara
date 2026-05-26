@@ -61,7 +61,7 @@ import { GdprRequest } from '@core/models';
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #m="matMenu">
-                <button mat-menu-item (click)="setStatus(r, 'in_progress')">En cours</button>
+                <button mat-menu-item (click)="setStatus(r, 'processing')">En cours</button>
                 <button mat-menu-item (click)="setStatus(r, 'completed')">Terminée</button>
                 <button mat-menu-item (click)="setStatus(r, 'rejected')">Rejetée</button>
               </mat-menu>
@@ -94,7 +94,7 @@ export class AdminGdprComponent implements OnInit {
     });
   }
 
-  setStatus(r: GdprRequest, status: GdprRequest['status']): void {
+  setStatus(r: GdprRequest, status: GdprRequest['statut']): void {
     this.admin.updateGdprStatus(r.id, status).subscribe({
       next: () => {
         this.snack.open('Statut mis à jour', 'OK', { duration: 2000 });
@@ -106,7 +106,7 @@ export class AdminGdprComponent implements OnInit {
   statusClass(s: string): string {
     return {
       pending: 'bg-amber-100 text-amber-700',
-      in_progress: 'bg-blue-100 text-blue-700',
+      processing: 'bg-blue-100 text-blue-700',
       completed: 'bg-green-100 text-green-700',
       rejected: 'bg-red-100 text-red-700'
     }[s] ?? 'bg-slate-100 text-slate-700';

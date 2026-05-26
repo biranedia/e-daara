@@ -4,9 +4,11 @@
  */
 
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext, requireRole, logAudit } = require('../middlewares/rbac');
-const { query, queryOne } = require('../config/database');
+const { query, queryOne, getConnection } = require('../config/database');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -85,6 +87,197 @@ router.get('/users', verifyJWT, loadRBACContext, requireRole('admin'), async (re
     res.json({ success: true, data: { users: enriched } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Erreur' });
+  }
+});
+
+/**
+ * @swagger
+ * /admin/users:
+ *   post:
+ *     tags: [Administration]
+ *     summary: Créer un utilisateur (admin)
+ *     security:
+ *       - BearerAuth: []
+ */
+router.post('/users', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  const conn = await getConnection();
+  try {
+    const { nom, prenom, email, password, roles: reqRoles } = req.body;
+
+    if (!nom || !prenom || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'nom, prenom, email et password sont requis'
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le mot de passe doit contenir au moins 8 caractères'
+      });
+    }
+
+    const existing = await queryOne('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email déjà enregistré',
+        code: 'EMAIL_ALREADY_EXISTS'
+      });
+    }
+
+    await conn.beginTransaction();
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const [result] = await conn.execute(
+      `INSERT INTO users (nom, prenom, email, password, provider, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'local', 'active', NOW(), NOW())`,
+      [nom, prenom, email, hashedPassword]
+    );
+    const userId = result.insertId;
+
+    // Assigner les rôles (student par défaut si aucun fourni)
+    const allowedRoles = ['student', 'instructor', 'admin'];
+    const validRoles = Array.isArray(reqRoles) && reqRoles.length
+      ? reqRoles.filter(r => allowedRoles.includes(r))
+      : ['student'];
+
+    if (validRoles.length) {
+      const placeholders = validRoles.map(() => '?').join(',');
+      const roleRows = await query(`SELECT id FROM roles WHERE name IN (${placeholders})`, validRoles);
+      for (const role of roleRows) {
+        await conn.execute('INSERT INTO user_role (user_id, role_id) VALUES (?, ?)', [userId, role.id]);
+      }
+    }
+
+    // Créer le profil apprenant
+    await conn.execute(
+      'INSERT INTO learner_profiles (user_id, created_at, updated_at) VALUES (?, NOW(), NOW())',
+      [userId]
+    );
+
+    await conn.commit();
+    await logAudit(req.user.id, 'CREATE_USER', 'admin', 'users', userId, req.ip, req.headers['user-agent']);
+
+    res.status(201).json({
+      success: true,
+      message: 'Utilisateur créé avec succès',
+      data: { userId }
+    });
+  } catch (error) {
+    await conn.rollback();
+    logger.error('Erreur création utilisateur admin:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la création' });
+  } finally {
+    conn.release();
+  }
+});
+
+/**
+ * @swagger
+ * /admin/users/{id}:
+ *   put:
+ *     tags: [Administration]
+ *     summary: Modifier les informations d'un utilisateur
+ *     security:
+ *       - BearerAuth: []
+ */
+router.put('/users/:id', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { nom, prenom, email, password } = req.body;
+
+    const user = await queryOne(
+      'SELECT id FROM users WHERE id = ? AND deleted_at IS NULL',
+      [userId]
+    );
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    }
+
+    const updates = [];
+    const params = [];
+
+    if (nom)   { updates.push('nom = ?');   params.push(nom); }
+    if (prenom){ updates.push('prenom = ?'); params.push(prenom); }
+
+    if (email) {
+      const emailTaken = await queryOne(
+        'SELECT id FROM users WHERE email = ? AND id != ?',
+        [email, userId]
+      );
+      if (emailTaken) {
+        return res.status(409).json({ success: false, message: 'Cet email est déjà utilisé' });
+      }
+      updates.push('email = ?');
+      params.push(email);
+    }
+
+    if (password) {
+      if (password.length < 8) {
+        return res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 8 caractères' });
+      }
+      const hashed = await bcrypt.hash(password, 12);
+      updates.push('password = ?');
+      params.push(hashed);
+    }
+
+    if (!updates.length) {
+      return res.status(400).json({ success: false, message: 'Aucun champ à modifier' });
+    }
+
+    params.push(userId);
+    await query(`UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, params);
+    await logAudit(req.user.id, 'UPDATE_USER', 'admin', 'users', userId, req.ip, req.headers['user-agent']);
+
+    res.json({ success: true, message: 'Utilisateur mis à jour avec succès' });
+  } catch (error) {
+    logger.error('Erreur mise à jour utilisateur admin:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la mise à jour' });
+  }
+});
+
+/**
+ * @swagger
+ * /admin/users/{id}:
+ *   delete:
+ *     tags: [Administration]
+ *     summary: Supprimer un utilisateur (soft delete)
+ *     security:
+ *       - BearerAuth: []
+ */
+router.delete('/users/:id', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+
+    if (userId === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vous ne pouvez pas supprimer votre propre compte'
+      });
+    }
+
+    const user = await queryOne(
+      'SELECT id, email FROM users WHERE id = ? AND deleted_at IS NULL',
+      [userId]
+    );
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    }
+
+    // Soft delete : on marque le compte comme supprimé + on le désactive
+    await query(
+      `UPDATE users SET deleted_at = NOW(), status = 'inactive', updated_at = NOW() WHERE id = ?`,
+      [userId]
+    );
+
+    await logAudit(req.user.id, 'DELETE_USER', 'admin', 'users', userId, req.ip, req.headers['user-agent']);
+
+    res.json({ success: true, message: `Utilisateur ${user.email} supprimé avec succès` });
+  } catch (error) {
+    logger.error('Erreur suppression utilisateur admin:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression' });
   }
 });
 
@@ -195,11 +388,35 @@ router.get('/courses/pending', verifyJWT, loadRBACContext, requireRole('admin'),
 });
 
 /**
+ * GET /admin/courses/validations — Historique des validations automatiques
+ * Retourne les 200 dernières entrées de course_validations (auto + manuelles).
+ */
+router.get('/courses/validations', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  try {
+    const validations = await query(
+      `SELECT cv.id, cv.course_id, cv.decision, cv.commentaire, cv.created_at,
+              c.titre AS course_titre, c.status AS course_status,
+              c.niveau, c.duree,
+              u.nom AS instructor_nom, u.prenom AS instructor_prenom,
+              CASE WHEN cv.admin_id IS NULL THEN 'auto' ELSE 'manual' END AS source
+       FROM course_validations cv
+       LEFT JOIN courses c ON cv.course_id = c.id
+       LEFT JOIN users u ON c.instructor_id = u.id
+       ORDER BY cv.created_at DESC
+       LIMIT 200`
+    );
+    res.json({ success: true, data: { validations } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+});
+
+/**
  * @swagger
  * /admin/courses/{id}/validate:
  *   post:
  *     tags: [Administration]
- *     summary: Valider ou refuser un cours
+ *     summary: Valider ou refuser un cours manuellement (fallback admin)
  *     security:
  *       - BearerAuth: []
  */
