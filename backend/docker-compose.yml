@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # Base de données MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: edaara_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: edaara_root_pass_change_me
+      MYSQL_DATABASE: edaara_db
+      MYSQL_USER: edaara_user
+      MYSQL_PASSWORD: edaara_password_change_me
+      MYSQL_CHARSET: utf8mb4
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/edaara_schema_complet.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed-rbac.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    networks:
+      - edaara_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # API E-DAARA
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edaara_api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      
+      # Base de données
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: edaara_db
+      DB_USER: edaara_user
+      DB_PASSWORD: edaara_password_change_me
+      
+      # JWT
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production_minimum_32_chars
+      JWT_ACCESS_TOKEN_EXPIRATION: 900
+      JWT_REFRESH_TOKEN_EXPIRATION: 2592000
+      
+      # CORS
+      CORS_ORIGIN: http://localhost:4200,http://localhost:3000
+      CORS_CREDENTIALS: "true"
+      
+      # Logging
+      LOG_LEVEL: info
+      
+      # OAuth (à configurer)
+      GOOGLE_CLIENT_ID: your_google_client_id
+      GOOGLE_CLIENT_SECRET: your_google_client_secret
+      FACEBOOK_CLIENT_ID: your_facebook_app_id
+      FACEBOOK_CLIENT_SECRET: your_facebook_app_secret
+    
+    ports:
+      - "3000:3000"
+    
+    volumes:
+      - ./logs:/app/logs
+    
+    depends_on:
+      mysql:
+        condition: service_healthy
+    
+    networks:
+      - edaara_network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx reverse proxy (optionnel)
+  nginx:
+    image: nginx:alpine
+    container_name: edaara_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - edaara_network
+
+volumes:
+  mysql_data:
+
+networks:
+  edaara_network:
+    driver: bridge

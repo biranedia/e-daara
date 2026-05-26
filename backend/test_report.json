@@ -1,0 +1,349 @@
+{
+  "timestamp": "2026-05-17T18:20:53.255Z",
+  "summary": {
+    "total": 32,
+    "passed": 32,
+    "failed": 0,
+    "successRate": "100.00%"
+  },
+  "tests": [
+    {
+      "timestamp": "2026-05-17T18:20:51.738Z",
+      "method": "GET",
+      "endpoint": "/health",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Health check",
+      "details": {
+        "data": {
+          "status": "OK",
+          "timestamp": "2026-05-17T18:20:51.731Z",
+          "environment": "development",
+          "version": "1.0.0"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:51.744Z",
+      "method": "GET",
+      "endpoint": "/api/version",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Version",
+      "details": {
+        "version": "1.0.0"
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:51.757Z",
+      "method": "GET",
+      "endpoint": "/api/public/courses",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List published courses",
+      "details": {
+        "count": 0
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:51.761Z",
+      "method": "GET",
+      "endpoint": "/api/public/paths",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List paths",
+      "details": {
+        "count": 0
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:51.766Z",
+      "method": "GET",
+      "endpoint": "/api/public/categories",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List categories",
+      "details": {
+        "count": 7
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:52.133Z",
+      "method": "POST",
+      "endpoint": "/api/auth/register",
+      "expectedStatus": 201,
+      "success": true,
+      "message": "Register new user",
+      "details": {
+        "email": "test1779042051767@test.sn",
+        "hasToken": true
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:52.455Z",
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Admin login",
+      "details": {
+        "userId": 1,
+        "hasToken": true
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:52.460Z",
+      "method": "POST",
+      "endpoint": "/api/auth/refresh-token",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Refresh access token",
+      "details": {
+        "newTokenExists": true
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:52.471Z",
+      "method": "GET",
+      "endpoint": "/api/users/profile",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Get user profile",
+      "details": {
+        "email": "admin@edaara.sn"
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:52.477Z",
+      "method": "PUT",
+      "endpoint": "/api/users/profile",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Update profile",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.087Z",
+      "method": "POST",
+      "endpoint": "/api/users/change-password",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Change password (same)",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.094Z",
+      "method": "GET",
+      "endpoint": "/api/courses",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List user courses",
+      "details": {
+        "count": 11
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.109Z",
+      "method": "POST",
+      "endpoint": "/api/courses",
+      "expectedStatus": 201,
+      "success": true,
+      "message": "Create course",
+      "details": {
+        "courseId": 18
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.114Z",
+      "method": "GET",
+      "endpoint": "/api/courses/18",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Get course details",
+      "details": {
+        "title": "Test Course 1779042053094"
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.127Z",
+      "method": "PUT",
+      "endpoint": "/api/courses/18",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Update course",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.138Z",
+      "method": "DELETE",
+      "endpoint": "/api/courses/18",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Delete course",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.145Z",
+      "method": "GET",
+      "endpoint": "/api/admin/dashboard",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Dashboard stats",
+      "details": {
+        "totalUsers": 9,
+        "publishedCourses": 0
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.152Z",
+      "method": "GET",
+      "endpoint": "/api/admin/users",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List all users",
+      "details": {
+        "count": 9
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.161Z",
+      "method": "PUT",
+      "endpoint": "/api/admin/users/2/status",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Update user status",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.168Z",
+      "method": "GET",
+      "endpoint": "/api/admin/courses/pending",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List pending courses",
+      "details": {
+        "count": 0
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.177Z",
+      "method": "GET",
+      "endpoint": "/api/admin/audit-logs",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "View audit logs",
+      "details": {
+        "count": 112
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.184Z",
+      "method": "GET",
+      "endpoint": "/api/dashboard/student",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Student dashboard",
+      "details": {
+        "enrolledCourses": 1
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.191Z",
+      "method": "GET",
+      "endpoint": "/api/paths",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List paths",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.207Z",
+      "method": "POST",
+      "endpoint": "/api/paths",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Create path",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.212Z",
+      "method": "GET",
+      "endpoint": "/api/lessons",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List lessons",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.218Z",
+      "method": "GET",
+      "endpoint": "/api/assessments",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List assessments",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.225Z",
+      "method": "GET",
+      "endpoint": "/api/enrollments",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "List enrollments",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.231Z",
+      "method": "POST",
+      "endpoint": "/api/enrollments",
+      "expectedStatus": 200,
+      "success": true,
+      "message": "Enroll in course",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.240Z",
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "expectedStatus": 401,
+      "success": true,
+      "message": "Correct error handling (invalid credentials)",
+      "details": {
+        "error": "Email ou mot de passe incorrect"
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.244Z",
+      "method": "GET",
+      "endpoint": "/api/courses/99999",
+      "expectedStatus": 404,
+      "success": true,
+      "message": "Correct error handling (not found)",
+      "details": {
+        "error": "Cours non trouvé"
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.248Z",
+      "method": "GET",
+      "endpoint": "/api/public/courses/99999",
+      "expectedStatus": 404,
+      "success": true,
+      "message": "Correct error handling (not found)",
+      "details": {
+        "error": "Cours non trouvé"
+      }
+    },
+    {
+      "timestamp": "2026-05-17T18:20:53.254Z",
+      "method": "POST",
+      "endpoint": "/api/courses",
+      "expectedStatus": 400,
+      "success": true,
+      "message": "Correct error handling (validation)",
+      "details": {
+        "error": "Titre requis"
+      }
+    }
+  ]
+}

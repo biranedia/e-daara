@@ -1,0 +1,127 @@
+/* ============================================
+   Angular Material theme
+   ============================================ */
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$edaara-primary: mat.m2-define-palette(mat.$m2-teal-palette, 600);
+$edaara-accent:  mat.m2-define-palette(mat.$m2-amber-palette, 500);
+$edaara-warn:    mat.m2-define-palette(mat.$m2-red-palette);
+
+$edaara-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $edaara-primary,
+    accent:  $edaara-accent,
+    warn:    $edaara-warn
+  ),
+  typography: mat.m2-define-typography-config(
+    $font-family: 'Inter, system-ui, sans-serif'
+  ),
+  density: 0
+));
+
+@include mat.all-component-themes($edaara-theme);
+
+/* ============================================
+   Tailwind (sans preflight — désactivé dans tailwind.config.js
+   pour éviter le conflit avec Angular Material MDC)
+   ============================================ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   Reset minimal (remplace le preflight Tailwind)
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ============================================
+   Styles globaux
+   ============================================ */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, svg, video {
+  display: block;
+  max-width: 100%;
+}
+
+/* ============================================
+   Accessibilité WCAG 2.1 AA
+   ============================================ */
+
+*:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+a {
+  color: #0d9488;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   Correctifs layout
+   ============================================ */
+
+/* Tables Material scrollables sur mobile */
+.mat-mdc-table-container,
+.mat-mdc-paginator {
+  overflow-x: auto;
+}
+
+/* z-index overlay menus */
+.cdk-overlay-container {
+  z-index: 1000;
+}
+
+/* ============================================
+   Lignes tronquées
+   ============================================ */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -1,0 +1,65 @@
+# Dépendances
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environnement
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE et éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Uploads temporaires
+uploads/
+tmp/
+temp/
+
+# Build et dist
+dist/
+build/
+.cache/
+
+# Tests et couverture
+coverage/
+.nyc_output/
+
+# Fichiers temporaires
+*.tmp
+*.bak
+
+# Certificats SSL (à ne pas commiter)
+*.pem
+*.key
+*.crt
+*.csr
+
+# Sauvegarde BD (à ne pas commiter)
+*.sql.gz
+*.sql.zip
+
+# Variables d'environnement sensibles
+.env.production
+.env.staging
