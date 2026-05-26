@@ -388,11 +388,35 @@ router.get('/courses/pending', verifyJWT, loadRBACContext, requireRole('admin'),
 });
 
 /**
+ * GET /admin/courses/validations — Historique des validations automatiques
+ * Retourne les 200 dernières entrées de course_validations (auto + manuelles).
+ */
+router.get('/courses/validations', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
+  try {
+    const validations = await query(
+      `SELECT cv.id, cv.course_id, cv.decision, cv.commentaire, cv.created_at,
+              c.titre AS course_titre, c.status AS course_status,
+              c.niveau, c.duree,
+              u.nom AS instructor_nom, u.prenom AS instructor_prenom,
+              CASE WHEN cv.admin_id IS NULL THEN 'auto' ELSE 'manual' END AS source
+       FROM course_validations cv
+       LEFT JOIN courses c ON cv.course_id = c.id
+       LEFT JOIN users u ON c.instructor_id = u.id
+       ORDER BY cv.created_at DESC
+       LIMIT 200`
+    );
+    res.json({ success: true, data: { validations } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+});
+
+/**
  * @swagger
  * /admin/courses/{id}/validate:
  *   post:
  *     tags: [Administration]
- *     summary: Valider ou refuser un cours
+ *     summary: Valider ou refuser un cours manuellement (fallback admin)
  *     security:
  *       - BearerAuth: []
  */

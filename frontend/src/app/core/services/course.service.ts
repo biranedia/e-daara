@@ -57,7 +57,10 @@ export class CourseService {
   }
 
   submit(id: number) {
-    return this.api.post<ApiResponse<unknown>>(`/courses/${id}/submit`, {});
+    return this.api.post<ApiResponse<unknown> & {
+      decision?: 'approved' | 'rejected';
+      failed_criteria?: string[];
+    }>(`/courses/${id}/submit`, {});
   }
 
   // ----- Sections -----

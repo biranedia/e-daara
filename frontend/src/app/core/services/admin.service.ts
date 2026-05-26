@@ -6,6 +6,7 @@ import {
   ApiResponse,
   AuditLog,
   Course,
+  CourseValidation,
   GdprRequest,
   Setting,
   StatsSnapshot,
@@ -68,6 +69,11 @@ export class AdminService {
       decision,
       commentaire
     });
+  }
+
+  /** Historique complet des validations automatiques et manuelles */
+  validationHistory() {
+    return this.api.get<ApiResponse<{ validations: CourseValidation[] }>>('/admin/courses/validations');
   }
 
   // ----- Audit logs (coeur souveraineté) -----

@@ -147,7 +147,21 @@ export class SocialService {
     return this.api.post<ApiResponse<{ badgeId: number }>>('/badges', payload);
   }
 
-  awardBadge(payload: { user_id: number; badge_id: number }) {
-    return this.api.post<ApiResponse<unknown>>('/badges/award', payload);
+  updateBadge(id: number, payload: Partial<Badge>) {
+    return this.api.put<ApiResponse<unknown>>(`/badges/${id}`, payload);
+  }
+
+  deleteBadge(id: number) {
+    return this.api.delete<ApiResponse<unknown>>(`/badges/${id}`);
+  }
+
+  badgeStats() {
+    return this.api.get<ApiResponse<{
+      top_badges: Array<Badge & { nb_attributions: number }>;
+      recent_awards: Array<{
+        obtenu_at: string; badge_nom: string; icone: string;
+        user_nom: string; user_prenom: string; email: string;
+      }>;
+    }>>('/badges/stats');
   }
 }

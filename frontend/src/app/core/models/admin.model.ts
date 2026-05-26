@@ -68,6 +68,23 @@ export interface Setting {
   description?: string;
 }
 
+/** Entrée dans course_validations — résultat d'une validation automatique ou manuelle */
+export interface CourseValidation {
+  id: number;
+  course_id: number;
+  course_titre?: string;
+  course_status?: string;
+  niveau?: string;
+  duree?: number;
+  instructor_nom?: string;
+  instructor_prenom?: string;
+  decision: 'approved' | 'rejected';
+  commentaire?: string;
+  /** 'auto' = validé automatiquement par le système, 'manual' = décision admin */
+  source: 'auto' | 'manual';
+  created_at: string;
+}
+
 export interface GdprRequest {
   id: number;
   user_id: number;

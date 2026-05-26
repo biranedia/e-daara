@@ -1,86 +1,160 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminService } from '@core/services/admin.service';
-import { Course } from '@core/models';
+import { CourseValidation } from '@core/models';
 
+type ValidationFilter = 'all' | 'approved' | 'rejected' | 'auto' | 'manual';
+
+/**
+ * Page de validation automatique des cours.
+ *
+ * Depuis que la validation est entièrement automatique (déclenchée au moment où
+ * le formateur soumet son cours), cette page est devenue un tableau de bord
+ * d'audit : elle affiche l'historique de toutes les décisions (approuvées ou
+ * refusées) avec les critères détaillés.
+ *
+ * Un admin peut toujours corriger manuellement un cours refusé via le bouton
+ * « Forcer l'approbation » (route POST /admin/courses/:id/validate).
+ */
 @Component({
   selector: 'app-admin-courses-pending',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule
-  ],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
   template: `
-    <div class="space-y-4">
-      <header>
-        <h1 class="text-2xl font-bold text-edaara-dark">Validation des cours</h1>
-        <p class="text-slate-500">{{ courses().length }} cours en attente de modération</p>
+    <div class="space-y-6">
+      <!-- En-tête -->
+      <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-edaara-dark flex items-center gap-2">
+            <mat-icon class="text-edaara-primary">auto_awesome</mat-icon>
+            Validation automatique des cours
+          </h1>
+          <p class="text-slate-500 mt-1">
+            Les cours sont validés automatiquement à la soumission selon 9 critères qualité.
+          </p>
+        </div>
+        <button mat-stroked-button (click)="load()">
+          <mat-icon>refresh</mat-icon> Actualiser
+        </button>
       </header>
 
-      @if (courses().length === 0) {
+      <!-- Compteurs -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
+          <p class="text-3xl font-bold text-edaara-primary">{{ validations().length }}</p>
+          <p class="text-xs text-slate-500 mt-1">Total soumissions</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
+          <p class="text-3xl font-bold text-green-600">{{ approvedAutoCount() }}</p>
+          <p class="text-xs text-slate-500 mt-1">Approuvés auto</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
+          <p class="text-3xl font-bold text-red-500">{{ rejectedAutoCount() }}</p>
+          <p class="text-xs text-slate-500 mt-1">Refusés auto</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
+          <p class="text-3xl font-bold text-amber-500">{{ manualCount() }}</p>
+          <p class="text-xs text-slate-500 mt-1">Décisions manuelles</p>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="flex flex-wrap gap-2">
+        @for (f of filters; track f.value) {
+          <button (click)="activeFilter.set(f.value)"
+                  class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                  [class]="activeFilter() === f.value
+                    ? 'bg-edaara-primary text-white'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+            {{ f.label }}
+          </button>
+        }
+      </div>
+
+      <!-- Liste -->
+      @if (filtered().length === 0) {
         <div class="bg-white rounded-xl p-12 shadow-sm border border-slate-100 text-center">
-          <mat-icon class="!w-16 !h-16 !text-6xl text-green-500">verified</mat-icon>
-          <p class="text-slate-600 mt-3 font-medium">Aucun cours en attente.</p>
-          <p class="text-slate-400 text-sm">Tous les cours soumis ont été traités.</p>
+          <mat-icon class="!w-16 !h-16 !text-6xl text-slate-300">fact_check</mat-icon>
+          <p class="text-slate-500 mt-3">Aucune validation à afficher.</p>
         </div>
       } @else {
-        <div class="grid gap-4">
-          @for (c of courses(); track c.id) {
-            <article class="bg-white rounded-xl shadow-sm border border-slate-100">
+        <div class="grid gap-3">
+          @for (v of filtered(); track v.id) {
+            <article class="bg-white rounded-xl shadow-sm border"
+                     [class.border-green-200]="v.decision === 'approved'"
+                     [class.border-red-200]="v.decision === 'rejected'">
               <div class="p-5">
                 <div class="flex flex-col md:flex-row md:items-start gap-4">
-                  <div class="flex-1">
-                    <h3 class="font-bold text-lg text-edaara-dark">{{ c.titre }}</h3>
-                    <p class="text-sm text-slate-600 mt-1 line-clamp-2">{{ c.description }}</p>
-                    <div class="flex flex-wrap gap-2 mt-3 text-xs">
-                      @if (c.niveau) {
-                        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600">{{ c.niveau }}</span>
-                      }
-                      @if (c.duree) {
-                        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600">{{ c.duree }} min</span>
-                      }
-                      <span class="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
-                        {{ c.instructor_prenom }} {{ c.instructor_nom }}
-                      </span>
-                      <span class="px-2 py-1 rounded-full bg-amber-50 text-amber-600">
-                        Soumis le {{ c.created_at | date:'dd/MM/yyyy' }}
-                      </span>
+
+                  <!-- Icône décision -->
+                  <div class="flex-shrink-0">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                         [class.bg-green-100]="v.decision === 'approved'"
+                         [class.bg-red-100]="v.decision === 'rejected'">
+                      <mat-icon [class.text-green-600]="v.decision === 'approved'"
+                                [class.text-red-500]="v.decision === 'rejected'">
+                        {{ v.decision === 'approved' ? 'check_circle' : 'cancel' }}
+                      </mat-icon>
                     </div>
                   </div>
-                  <div class="flex flex-col gap-2">
-                    <button mat-flat-button color="primary" (click)="approve(c)" [disabled]="processing() === c.id">
-                      <mat-icon>check_circle</mat-icon> Approuver
-                    </button>
-                    <button mat-stroked-button color="warn" (click)="toggleReject(c)" [disabled]="processing() === c.id">
-                      <mat-icon>cancel</mat-icon> Refuser
-                    </button>
+
+                  <!-- Infos cours -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 class="font-bold text-edaara-dark truncate">
+                        {{ v.course_titre || ('Cours #' + v.course_id) }}
+                      </h3>
+                      <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                            [class.bg-green-100]="v.decision === 'approved'"
+                            [class.text-green-700]="v.decision === 'approved'"
+                            [class.bg-red-100]="v.decision === 'rejected'"
+                            [class.text-red-600]="v.decision === 'rejected'">
+                        {{ v.decision === 'approved' ? 'Approuvé' : 'Refusé' }}
+                      </span>
+                      <span class="px-2 py-0.5 rounded-full text-xs"
+                            [class.bg-purple-50]="v.source === 'auto'"
+                            [class.text-purple-600]="v.source === 'auto'"
+                            [class.bg-slate-100]="v.source === 'manual'"
+                            [class.text-slate-600]="v.source === 'manual'">
+                        {{ v.source === 'auto' ? '✨ Auto' : '👤 Manuel' }}
+                      </span>
+                    </div>
+                    <p class="text-sm text-slate-500">
+                      👤 {{ v.instructor_prenom }} {{ v.instructor_nom }}
+                      &nbsp;·&nbsp;
+                      🕐 {{ v.created_at | date:'dd/MM/yyyy HH:mm' }}
+                    </p>
+
+                    @if (v.commentaire) {
+                      <div class="mt-3 p-3 rounded-lg text-sm whitespace-pre-wrap"
+                           [class.bg-red-50]="v.decision === 'rejected'"
+                           [class.text-red-700]="v.decision === 'rejected'"
+                           [class.bg-green-50]="v.decision === 'approved'"
+                           [class.text-green-700]="v.decision === 'approved'">
+                        {{ v.commentaire }}
+                      </div>
+                    }
                   </div>
+
+                  <!-- Forcer l'approbation (refus auto uniquement) -->
+                  @if (v.decision === 'rejected' && v.source === 'auto' && v.course_status !== 'published') {
+                    <div class="flex-shrink-0">
+                      <button mat-stroked-button color="primary"
+                              (click)="forceApprove(v)"
+                              [disabled]="processing() === v.course_id"
+                              matTooltip="Contourner la validation automatique et publier ce cours">
+                        <mat-icon>verified</mat-icon>
+                        Forcer l'approbation
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
-
-              <!-- Inline reject form -->
-              @if (rejectingId() === c.id) {
-                <div class="border-t border-slate-100 px-5 py-4 bg-red-50/50 space-y-3">
-                  <p class="text-sm font-medium text-red-700">Motif du refus</p>
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
-                    <mat-label>Expliquer le refus au formateur</mat-label>
-                    <textarea matInput rows="2" [(ngModel)]="rejectMotif" placeholder="Ex: Le contenu ne respecte pas les lignes directrices…"></textarea>
-                  </mat-form-field>
-                  <div class="flex gap-2 justify-end">
-                    <button mat-button (click)="toggleReject(null)">Annuler</button>
-                    <button mat-flat-button color="warn" (click)="confirmReject(c)" [disabled]="!rejectMotif.trim()">
-                      Confirmer le refus
-                    </button>
-                  </div>
-                </div>
-              }
             </article>
           }
         </div>
@@ -92,50 +166,68 @@ export class AdminCoursesPendingComponent implements OnInit {
   private readonly admin = inject(AdminService);
   private readonly snack = inject(MatSnackBar);
 
-  protected readonly courses = signal<Course[]>([]);
+  protected readonly validations = signal<CourseValidation[]>([]);
   protected readonly processing = signal<number | null>(null);
-  protected readonly rejectingId = signal<number | null>(null);
-  protected rejectMotif = '';
+  protected readonly activeFilter = signal<ValidationFilter>('all');
+
+  protected readonly filters: Array<{ value: ValidationFilter; label: string }> = [
+    { value: 'all',      label: 'Tout voir' },
+    { value: 'approved', label: '✅ Approuvés' },
+    { value: 'rejected', label: '❌ Refusés' },
+    { value: 'auto',     label: '✨ Automatique' },
+    { value: 'manual',   label: '👤 Manuel' }
+  ];
+
+  protected filtered(): CourseValidation[] {
+    const f = this.activeFilter();
+    const all = this.validations();
+    switch (f) {
+      case 'approved': return all.filter(v => v.decision === 'approved');
+      case 'rejected': return all.filter(v => v.decision === 'rejected');
+      case 'auto':     return all.filter(v => v.source === 'auto');
+      case 'manual':   return all.filter(v => v.source === 'manual');
+      default:         return all;
+    }
+  }
+
+  protected approvedAutoCount(): number {
+    return this.validations().filter(v => v.decision === 'approved' && v.source === 'auto').length;
+  }
+
+  protected rejectedAutoCount(): number {
+    return this.validations().filter(v => v.decision === 'rejected' && v.source === 'auto').length;
+  }
+
+  protected manualCount(): number {
+    return this.validations().filter(v => v.source === 'manual').length;
+  }
 
   ngOnInit(): void {
     this.load();
   }
 
   load(): void {
-    this.admin.pendingCourses().subscribe({
-      next: (res) => this.courses.set(res.data?.courses ?? [])
+    this.admin.validationHistory().subscribe({
+      next: (res) => this.validations.set(res.data?.validations ?? [])
     });
   }
 
-  approve(c: Course): void {
-    this.processing.set(c.id);
-    this.admin.validateCourse(c.id, 'approved').subscribe({
+  forceApprove(v: CourseValidation): void {
+    this.processing.set(v.course_id);
+    this.admin.validateCourse(
+      v.course_id,
+      'approved',
+      'Approbation manuelle par un administrateur (contournement validation automatique).'
+    ).subscribe({
       next: () => {
         this.processing.set(null);
-        this.snack.open(`"${c.titre}" approuvé et publié`, 'OK', { duration: 2500 });
+        this.snack.open(`"${v.course_titre}" approuvé et publié`, 'OK', { duration: 2500 });
         this.load();
       },
-      error: () => { this.processing.set(null); this.snack.open('Erreur', 'OK', { duration: 3000 }); }
-    });
-  }
-
-  toggleReject(c: Course | null): void {
-    this.rejectingId.set(c?.id ?? null);
-    this.rejectMotif = '';
-  }
-
-  confirmReject(c: Course): void {
-    if (!this.rejectMotif.trim()) return;
-    this.processing.set(c.id);
-    this.admin.validateCourse(c.id, 'rejected', this.rejectMotif).subscribe({
-      next: () => {
+      error: () => {
         this.processing.set(null);
-        this.rejectingId.set(null);
-        this.rejectMotif = '';
-        this.snack.open(`"${c.titre}" refusé`, 'OK', { duration: 2500 });
-        this.load();
-      },
-      error: () => { this.processing.set(null); this.snack.open('Erreur', 'OK', { duration: 3000 }); }
+        this.snack.open("Erreur lors de l'approbation", 'OK', { duration: 3000 });
+      }
     });
   }
 }

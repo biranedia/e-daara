@@ -12,7 +12,8 @@ router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
   try {
     const { user_id } = req.query;
     let sql = `
-      SELECT c.*, u.email, co.titre AS course_titre, p.titre AS path_titre
+      SELECT c.*, u.nom AS user_nom, u.prenom AS user_prenom, u.email,
+             co.titre AS course_titre, p.titre AS path_titre
       FROM certificates c
       INNER JOIN users u ON c.user_id = u.id
       LEFT JOIN courses co ON c.course_id = co.id

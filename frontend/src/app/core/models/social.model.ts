@@ -70,7 +70,11 @@ export interface Certificate {
   path_titre?: string;
   user_nom?: string;
   user_prenom?: string;
+  email?: string;
   numero_serie: string;
+  /** Mention attribuée automatiquement selon le score moyen aux quizzes */
+  mention?: 'Passable' | 'Bien' | 'Très Bien' | 'Avec Félicitations' | null;
+  emis_at?: string;
   date_emission: string;
   url_pdf?: string | null;
 }
@@ -80,8 +84,11 @@ export interface Badge {
   nom: string;
   description?: string;
   icone?: string;
+  /** Critère JSON structuré : {"type":"cours_completes","valeur":5} */
   critere?: string;
   xp_valeur?: number;
+  /** Nombre d'apprenants ayant obtenu ce badge (retourné par GET /badges) */
+  nb_attributions?: number;
   created_at?: string;
 }
 
@@ -92,5 +99,7 @@ export interface UserBadge {
   badge_nom?: string;
   badge_icone?: string;
   badge_description?: string;
-  date_obtention: string;
+  xp_valeur?: number;
+  critere?: string;
+  obtenu_at: string;
 }

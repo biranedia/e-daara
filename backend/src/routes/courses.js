@@ -270,11 +270,35 @@ router.put('/:id', verifyJWT, loadRBACContext, async (req, res) => {
 });
 
 /**
- * POST /courses/:id/submit — Soumettre un cours pour validation (draft → pending)
+ * POST /courses/:id/submit — Soumettre un cours + validation automatique
+ *
+ * Critères d'approbation (TOUS doivent être satisfaits) :
+ *  1. titre      — non vide, ≥ 5 caractères
+ *  2. description — non vide, ≥ 50 caractères
+ *  3. objectifs  — rempli, ≥ 30 caractères
+ *  4. niveau     — défini (non null)
+ *  5. thumbnail  — image de couverture présente
+ *  6. sections   — au moins 1 section
+ *  7. leçons     — au moins 3 leçons au total dans le cours
+ *  8. contenu    — au moins 1 leçon avec contenu (contenu non vide ou url valide)
+ *  9. formateur  — compte actif (status = 'active')
+ *
+ * Si TOUS les critères passent → status = 'published' (approuvé automatiquement).
+ * Si au moins un critère échoue → status = 'draft' (rejeté automatiquement).
+ * La décision est enregistrée dans course_validations.
  */
 router.post('/:id/submit', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
   try {
-    const course = await queryOne('SELECT id, instructor_id, status FROM courses WHERE id = ? AND deleted_at IS NULL', [req.params.id]);
+    const courseId = req.params.id;
+
+    // ── 1. Charger le cours complet ──────────────────────────────────────────
+    const course = await queryOne(
+      `SELECT c.*, u.status AS instructor_status
+       FROM courses c
+       INNER JOIN users u ON u.id = c.instructor_id
+       WHERE c.id = ? AND c.deleted_at IS NULL`,
+      [courseId]
+    );
     if (!course) return res.status(404).json({ success: false, message: 'Cours non trouvé' });
 
     if (course.instructor_id !== req.user.id && !req.user.roles.includes('admin')) {
@@ -283,15 +307,116 @@ router.post('/:id/submit', verifyJWT, loadRBACContext, requireRole('instructor',
     if (course.status === 'published') {
       return res.status(400).json({ success: false, message: 'Ce cours est déjà publié' });
     }
-    if (course.status === 'pending') {
-      return res.status(400).json({ success: false, message: 'Ce cours est déjà en attente de validation' });
+
+    // ── 2. Données structurelles (sections + leçons) ─────────────────────────
+    const sections = await query(
+      'SELECT id FROM sections WHERE course_id = ? AND deleted_at IS NULL',
+      [courseId]
+    );
+    const sectionIds = sections.map(s => s.id);
+
+    let totalLessons = 0;
+    let lessonsWithContent = 0;
+    if (sectionIds.length > 0) {
+      const placeholders = sectionIds.map(() => '?').join(',');
+      const lessons = await query(
+        `SELECT contenu, url FROM lessons WHERE section_id IN (${placeholders}) AND deleted_at IS NULL`,
+        sectionIds
+      );
+      totalLessons = lessons.length;
+      lessonsWithContent = lessons.filter(l =>
+        (l.contenu && l.contenu.trim().length > 0) ||
+        (l.url && l.url.trim().length > 0)
+      ).length;
     }
 
-    await query('UPDATE courses SET status = ?, updated_at = NOW() WHERE id = ?', ['pending', req.params.id]);
-    await logAudit(req.user.id, 'SUBMIT_COURSE_FOR_REVIEW', 'cours', 'courses', req.params.id, req.ip, req.headers['user-agent']);
+    // ── 3. Évaluation des critères ────────────────────────────────────────────
+    const criteria = [
+      {
+        code: 'titre',
+        label: 'Titre suffisamment descriptif (≥ 5 caractères)',
+        passed: !!(course.titre && course.titre.trim().length >= 5)
+      },
+      {
+        code: 'description',
+        label: 'Description complète (≥ 50 caractères)',
+        passed: !!(course.description && course.description.trim().length >= 50)
+      },
+      {
+        code: 'objectifs',
+        label: 'Objectifs pédagogiques définis (≥ 30 caractères)',
+        passed: !!(course.objectifs && course.objectifs.trim().length >= 30)
+      },
+      {
+        code: 'niveau',
+        label: 'Niveau du cours défini',
+        passed: !!(course.niveau && course.niveau.trim().length > 0)
+      },
+      {
+        code: 'thumbnail',
+        label: 'Image de couverture présente',
+        passed: !!(course.thumbnail && course.thumbnail.trim().length > 0)
+      },
+      {
+        code: 'sections',
+        label: 'Au moins 1 section créée',
+        passed: sectionIds.length >= 1
+      },
+      {
+        code: 'lecons',
+        label: 'Au moins 3 leçons au total',
+        passed: totalLessons >= 3
+      },
+      {
+        code: 'contenu',
+        label: 'Au moins 1 leçon avec contenu ou lien',
+        passed: lessonsWithContent >= 1
+      },
+      {
+        code: 'formateur',
+        label: 'Compte formateur actif',
+        passed: course.instructor_status === 'active'
+      }
+    ];
 
-    res.json({ success: true, message: 'Cours soumis pour validation' });
+    const failed = criteria.filter(c => !c.passed);
+    const approved = failed.length === 0;
+    const decision = approved ? 'approved' : 'rejected';
+    const newStatus = approved ? 'published' : 'draft';
+
+    // ── 4. Mettre à jour le statut du cours ───────────────────────────────────
+    await query(
+      'UPDATE courses SET status = ?, updated_at = NOW() WHERE id = ?',
+      [newStatus, courseId]
+    );
+
+    // ── 5. Enregistrer la décision dans course_validations ────────────────────
+    const commentaire = approved
+      ? 'Validation automatique : tous les critères sont satisfaits.'
+      : `Validation automatique — refus. Critères non satisfaits :\n${failed.map(c => `• ${c.label}`).join('\n')}`;
+
+    await query(
+      `INSERT INTO course_validations (course_id, admin_id, decision, commentaire, created_at)
+       VALUES (?, NULL, ?, ?, NOW())`,
+      [courseId, decision, commentaire]
+    );
+
+    // ── 6. Audit ──────────────────────────────────────────────────────────────
+    const auditAction = approved ? 'AUTO_VALIDATE_COURSE_APPROVED' : 'AUTO_VALIDATE_COURSE_REJECTED';
+    await logAudit(req.user.id, auditAction, 'cours', 'courses', courseId, req.ip, req.headers['user-agent']);
+
+    // ── 7. Réponse ────────────────────────────────────────────────────────────
+    res.json({
+      success: true,
+      decision,
+      message: approved
+        ? 'Cours soumis et approuvé automatiquement — il est maintenant publié !'
+        : `Cours refusé automatiquement. ${failed.length} critère(s) non satisfait(s).`,
+      criteria,
+      failed_criteria: failed.map(c => c.label)
+    });
   } catch (error) {
+    logger.error('Erreur soumission/validation cours:', error);
     res.status(500).json({ success: false, message: 'Erreur lors de la soumission' });
   }
 });

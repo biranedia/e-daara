@@ -132,9 +132,18 @@ export class InstructorCoursesComponent implements OnInit {
   submit(c: Course): void {
     this.submitting.set(c.id);
     this.courseService.submit(c.id).subscribe({
-      next: () => {
+      next: (res) => {
         this.submitting.set(null);
-        this.snack.open(`"${c.titre}" soumis pour validation`, 'OK', { duration: 3000 });
+        if (res.decision === 'approved') {
+          this.snack.open(`✅ "${c.titre}" validé automatiquement — il est maintenant publié !`, 'OK', { duration: 5000 });
+        } else if (res.decision === 'rejected') {
+          const raisons = res.failed_criteria?.length
+            ? ` Critères manquants : ${res.failed_criteria.join(', ')}`
+            : '';
+          this.snack.open(`❌ "${c.titre}" refusé automatiquement.${raisons}`, 'Fermer', { duration: 8000 });
+        } else {
+          this.snack.open(res.message ?? `"${c.titre}" soumis`, 'OK', { duration: 3000 });
+        }
         this.load();
       },
       error: (err) => {
@@ -159,8 +168,8 @@ export class InstructorCoursesComponent implements OnInit {
       published: 'bg-green-100 text-green-700',
       pending:   'bg-amber-100 text-amber-700',
       draft:     'bg-slate-100 text-slate-600',
-      archived:  'bg-red-100 text-red-700'
-    } as Record<string, string>)[s ?? 'draft'] ?? 'bg-slate-100 text-slate-600';
+      rejected:  'bg-red-100 text-red-600'
+    } as Record<string, string>)[s ?? ''] ?? 'bg-slate-100 text-slate-600';
   }
 
   statusLabel(s?: string): string {
@@ -168,7 +177,7 @@ export class InstructorCoursesComponent implements OnInit {
       published: 'Publié',
       pending:   'En attente',
       draft:     'Brouillon',
-      archived:  'Archivé'
-    } as Record<string, string>)[s ?? 'draft'] ?? s ?? '';
+      rejected:  'Refusé'
+    } as Record<string, string>)[s ?? ''] ?? s ?? '';
   }
 }
