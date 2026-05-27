@@ -1,12 +1,33 @@
-/**
+﻿/**
  * Routes utilisateurs
  * Gestion du profil, préférences, etc.
  */
 
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const sharp = require('sharp');
 const { verifyJWT } = require('../middlewares/auth');
 const { loadRBACContext } = require('../middlewares/rbac');
 const { query, queryOne } = require('../config/database');
+
+// ─── Multer : upload avatar (stockage temporaire en mémoire) ──────────────────
+const AVATARS_DIR = path.join(__dirname, '../../uploads/avatars');
+
+// On stocke en mémoire pour que sharp puisse traiter avant d'écrire sur disque
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo max (sharp va compresser)
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Seules les images JPEG, PNG, WEBP ou GIF sont acceptées'));
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -140,6 +161,49 @@ router.put('/profile', verifyJWT, async (req, res) => {
 });
 
 /**
+ * POST /users/avatar
+ * Upload + redimensionnement automatique 200×200 px (crop centré, JPEG qualité 85)
+ */
+router.post('/avatar', verifyJWT, avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Aucun fichier reçu' });
+    }
+
+    // Supprimer l'ancienne photo locale si elle existe
+    const existing = await queryOne('SELECT avatar FROM users WHERE id = ?', [req.user.id]);
+    if (existing?.avatar?.includes('/uploads/avatars/')) {
+      try {
+        const oldPath = path.join(AVATARS_DIR, path.basename(existing.avatar));
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      } catch (_) { /* ancienne photo introuvable ou externe — on ignore */ }
+    }
+
+    // Nom final : toujours .jpg (sharp convertit tout en JPEG)
+    fs.mkdirSync(AVATARS_DIR, { recursive: true });
+    const filename  = `avatar_${req.user.id}_${Date.now()}.jpg`;
+    const destPath  = path.join(AVATARS_DIR, filename);
+
+    // Redimensionner : 200×200 px, crop centré (cover), JPEG qualité 85
+    await sharp(req.file.buffer)
+      .resize(200, 200, { fit: 'cover', position: 'centre' })
+      .jpeg({ quality: 85, progressive: true })
+      .toFile(destPath);
+
+    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${filename}`;
+
+    await query(
+      'UPDATE users SET avatar = ?, updated_at = NOW() WHERE id = ?',
+      [avatarUrl, req.user.id]
+    );
+
+    res.json({ success: true, data: { avatarUrl } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Erreur lors de l'upload de l'avatar" });
+  }
+});
+
+/**
  * @swagger
  * /users/change-password:
  *   post:
@@ -244,4 +308,62 @@ router.get('/search', verifyJWT, async (req, res) => {
   }
 });
 
+
+/**
+ * GET /users/contacts
+ * Contacts disponibles selon le rôle : admins pour tous,
+ * + cours/étudiants pour instructor, + instructeurs pour student.
+ */
+router.get('/contacts', verifyJWT, loadRBACContext, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const roles  = req.user.roles;
+
+    const adminRole = await queryOne("SELECT id FROM roles WHERE name = 'admin'");
+    const admins = adminRole
+      ? await query(
+          `SELECT u.id, u.nom, u.prenom, u.email
+           FROM users u
+           INNER JOIN user_role ur ON ur.user_id = u.id
+           WHERE ur.role_id = ? AND u.id != ?
+           ORDER BY u.nom, u.prenom`,
+          [adminRole.id, userId]
+        )
+      : [];
+
+    if (roles.includes('instructor')) {
+      const courses = await query(
+        `SELECT id, titre FROM courses WHERE instructor_id = ? ORDER BY created_at DESC`,
+        [userId]
+      );
+      const coursesWithStudents = await Promise.all(
+        courses.map(async (course) => {
+          const students = await query(
+            `SELECT DISTINCT u.id, u.nom, u.prenom, u.email
+             FROM users u
+             INNER JOIN enrollments e ON e.user_id = u.id
+             WHERE e.course_id = ?
+             ORDER BY u.nom, u.prenom`,
+            [course.id]
+          );
+          return { id: course.id, titre: course.titre, students };
+        })
+      );
+      return res.json({ success: true, data: { admins, courses: coursesWithStudents } });
+    }
+
+    const instructors = await query(
+      `SELECT DISTINCT u.id, u.nom, u.prenom, u.email
+       FROM users u
+       INNER JOIN courses c ON c.instructor_id = u.id
+       INNER JOIN enrollments e ON e.course_id = c.id
+       WHERE e.user_id = ? AND u.id != ?
+       ORDER BY u.nom, u.prenom`,
+      [userId, userId]
+    );
+    res.json({ success: true, data: { admins, instructors } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || 'Erreur contacts' });
+  }
+});
 module.exports = router;

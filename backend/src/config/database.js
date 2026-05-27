@@ -18,16 +18,91 @@ const pool = mysql.createPool({
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelayMs: 0,
   charset: 'utf8mb4',
-  collation: 'utf8mb4_unicode_ci',
   timezone: '+00:00'
 });
 
-// Vérifier la connexion au démarrage
+// Vérifier la connexion et appliquer les migrations légères au démarrage
 pool.getConnection()
-  .then((conn) => {
+  .then(async (conn) => {
     logger.info('✓ Connexion MySQL réussie');
+
+    // Migration : ajouter les colonnes manquantes à lessons si elles n'existent pas
+    const db = process.env.DB_NAME;
+    const checkCol = async (table, col) => {
+      const [rows] = await conn.execute(
+        `SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [db, table, col]
+      );
+      return rows[0].cnt > 0;
+    };
+
+    if (!(await checkCol('lessons', 'type'))) {
+      await conn.execute(
+        `ALTER TABLE lessons ADD COLUMN type ENUM('video','pdf','texte','lien','projet') DEFAULT 'texte' AFTER status`
+      );
+      logger.info('Migration : colonne lessons.type ajoutée');
+    }
+    if (!(await checkCol('lessons', 'url'))) {
+      await conn.execute(
+        `ALTER TABLE lessons ADD COLUMN url VARCHAR(1000) NULL AFTER contenu`
+      );
+      logger.info('Migration : colonne lessons.url ajoutée');
+    }
+    if (!(await checkCol('lessons', 'deleted_at'))) {
+      await conn.execute(
+        `ALTER TABLE lessons ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL`
+      );
+      logger.info('Migration : colonne lessons.deleted_at ajoutée');
+    }
+    // Migration : ajouter la colonne deleted_at à sections si elle n'existe pas
+    if (!(await checkCol('sections', 'deleted_at'))) {
+      await conn.execute(
+        `ALTER TABLE sections ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL`
+      );
+      logger.info('Migration : colonne sections.deleted_at ajoutée');
+    }
+    // Migration : rendre course_validations.admin_id nullable (autoriser NULL pour validations automatiques)
+    try {
+      const [nullableRows] = await conn.execute(
+        `SELECT IS_NULLABLE FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'course_validations' AND COLUMN_NAME = 'admin_id'`,
+        [db]
+      );
+      if (nullableRows.length > 0 && nullableRows[0].IS_NULLABLE !== 'YES') {
+        await conn.execute(`ALTER TABLE course_validations MODIFY COLUMN admin_id BIGINT UNSIGNED NULL`);
+        logger.info('Migration : course_validations.admin_id rendu nullable');
+      }
+    } catch (err) {
+      // Ne pas planter si la migration échoue — logguer et continuer
+      logger.warn('Migration skipped: unable to alter course_validations.admin_id', err.message);
+    }
+    if (!(await checkCol('lessons', 'thumbnail'))) {
+      await conn.execute(
+        `ALTER TABLE lessons ADD COLUMN thumbnail VARCHAR(1000) NULL AFTER url`
+      );
+      logger.info('Migration : colonne lessons.thumbnail ajoutée');
+    }
+    // Migration : ajouter contenu aux resources pour stocker texte riche
+    if (!(await checkCol('resources', 'contenu'))) {
+      try {
+        await conn.execute(`ALTER TABLE resources ADD COLUMN contenu LONGTEXT NULL AFTER url`);
+        logger.info('Migration : colonne resources.contenu ajoutée');
+      } catch (err) {
+        logger.warn('Migration skipped: unable to add resources.contenu', err.message);
+      }
+    }
+    // Migration : étendre l'enum resources.type pour inclure 'texte' et 'projet'
+    try {
+      await conn.execute(
+        `ALTER TABLE resources MODIFY COLUMN type ENUM('video','pdf','lien','mini_projet','audio','image','texte','projet') NOT NULL`
+      );
+      logger.info("Migration : resources.type enum étendu (texte, projet) si nécessaire");
+    } catch (err) {
+      logger.warn('Migration skipped: unable to modify resources.type enum', err.message);
+    }
+
     conn.release();
   })
   .catch((err) => {

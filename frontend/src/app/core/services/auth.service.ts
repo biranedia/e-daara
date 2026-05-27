@@ -141,6 +141,25 @@ export class AuthService {
     );
   }
 
+  /**
+   * Upload d'une photo de profil (multipart).
+   * Met à jour le signal utilisateur avec la nouvelle URL.
+   */
+  uploadAvatar(file: File): Observable<ApiResponse<{ avatarUrl: string }>> {
+    const form = new FormData();
+    form.append('avatar', file);
+    return this.api.postForm<ApiResponse<{ avatarUrl: string }>>('/users/avatar', form).pipe(
+      tap((res) => {
+        if (res.success && res.data?.avatarUrl) {
+          const updated = { ...this.userSignal()!, avatar: res.data.avatarUrl };
+          this.storage.saveUser(updated);
+          this.userSignal.set(updated);
+          this.user$.next(updated);
+        }
+      })
+    );
+  }
+
   changePassword(currentPassword: string, newPassword: string): Observable<ApiResponse<unknown>> {
     return this.api.post<ApiResponse<unknown>>('/users/change-password', {
       currentPassword,

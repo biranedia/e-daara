@@ -17,13 +17,12 @@ import { SidebarItem } from '@shared/components/app-sidebar/app-sidebar.componen
 })
 export class InstructorLayoutComponent {
   protected readonly items: SidebarItem[] = [
-    { label: 'Tableau de bord', icon: 'dashboard', route: '/instructor/dashboard' },
-    { label: 'Mes cours', icon: 'menu_book', route: '/instructor/courses' },
-    { label: 'Mes parcours', icon: 'route', route: '/instructor/paths' },
-    { label: 'Évaluations', icon: 'quiz', route: '/instructor/assessments' },
-    { label: 'Annonces', icon: 'campaign', route: '/instructor/announcements' },
-    { label: 'Statistiques', icon: 'insights', route: '/instructor/stats' },
-    { label: 'Messages', icon: 'chat', route: '/instructor/messages' },
-    { label: 'Mon profil', icon: 'manage_accounts', route: '/instructor/profile' }
+    { label: 'Tableau de bord',   icon: 'dashboard',        route: '/instructor/dashboard'   },
+    { label: 'Parcours & cours',  icon: 'route',            route: '/instructor/paths'       },
+    { label: 'Évaluations',       icon: 'quiz',             route: '/instructor/assessments' },
+    { label: 'Annonces',          icon: 'campaign',         route: '/instructor/announcements'},
+    { label: 'Statistiques',      icon: 'insights',         route: '/instructor/stats'       },
+    { label: 'Messages',          icon: 'chat',             route: '/instructor/messages'    },
+    { label: 'Mon profil',        icon: 'manage_accounts',  route: '/instructor/profile'     }
   ];
 }

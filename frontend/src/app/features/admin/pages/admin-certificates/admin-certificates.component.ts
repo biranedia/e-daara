@@ -8,7 +8,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SocialService } from '@core/services/social.service';
-import { AdminService } from '@core/services/admin.service';
 import { Certificate } from '@core/models';
 
 @Component({

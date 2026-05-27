@@ -11,6 +11,14 @@ import {
   UserBadge
 } from '../models';
 
+export interface ContactUser {
+  id: number;
+  nom: string;
+  prenom: string;
+  email: string;
+  avatar?: string;
+}
+
 /**
  * Service Notifications / Messages / Forum / Annonces / Certificats / Badges.
  */
@@ -35,9 +43,18 @@ export class SocialService {
     return this.api.post<ApiResponse<unknown>>('/notifications', payload);
   }
 
-  // ----- Recherche utilisateurs (pour messagerie) -----
+  // ----- Recherche utilisateurs (pour messagerie admin) -----
   searchUsers(q: string) {
     return this.api.get<ApiResponse<{ users: { id: number; nom: string; prenom: string; email: string; avatar?: string }[] }>>('/users/search', { q });
+  }
+
+  // ----- Contacts disponibles selon le rôle (instructor / student) -----
+  getContacts() {
+    return this.api.get<ApiResponse<{
+      admins: ContactUser[];
+      courses?: Array<{ id: number; titre: string; students: ContactUser[] }>;
+      instructors?: ContactUser[];
+    }>>('/users/contacts');
   }
 
   // ----- Messagerie privée -----

@@ -59,6 +59,8 @@ export class CourseService {
   submit(id: number) {
     return this.api.post<ApiResponse<unknown> & {
       decision?: 'approved' | 'rejected';
+      message?: string;
+      criteria?: Array<{ code: string; label: string; passed: boolean }>;
       failed_criteria?: string[];
     }>(`/courses/${id}/submit`, {});
   }
@@ -104,16 +106,23 @@ export class CourseService {
   createLesson(payload: Partial<Lesson>) {
     // Backend requiert : section_id + course_id + titre (sans course_id => 400)
     return this.api.post<ApiResponse<{ lessonId: number }>>('/lessons', {
-      section_id: payload.section_id,
-      course_id: payload.course_id,
-      titre: payload.titre,
+      section_id:  payload.section_id,
+      course_id:   payload.course_id,
+      titre:       payload.titre,
+      type:        payload.type ?? 'texte',
       description: payload.description ?? '',
-      contenu: payload.contenu ?? '',
-      duree: payload.duree ?? 0,
-      ordre: payload.ordre ?? 0,
-      is_free: payload.is_free ?? true,
-      status: payload.status ?? 'draft'
+      contenu:     payload.contenu ?? '',
+      url:         payload.url ?? '',
+      thumbnail:   payload.thumbnail ?? '',
+      duree:       payload.duree ?? 0,
+      ordre:       payload.ordre ?? 0,
+      is_free:     payload.is_free ?? true,
+      status:      payload.status ?? 'draft'
     });
+  }
+
+  getCoursePaths(courseId: number) {
+    return this.api.get<ApiResponse<{ paths: { id: number; titre: string }[] }>>(`/courses/${courseId}/paths`);
   }
 
   updateLesson(id: number, payload: Partial<Lesson>) {
