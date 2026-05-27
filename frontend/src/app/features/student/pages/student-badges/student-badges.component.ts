@@ -26,7 +26,7 @@ import { Badge, UserBadge } from '@core/models';
               </div>
               <p class="text-sm font-semibold text-edaara-dark mt-2">{{ b.badge_nom }}</p>
               <p class="text-xs text-slate-500 mt-1">{{ b.badge_description }}</p>
-              <p class="text-xs text-slate-400 mt-1">{{ b.date_obtention | date:'dd/MM/yyyy' }}</p>
+              <p class="text-xs text-slate-400 mt-1">{{ b.obtenu_at | date:'dd/MM/yyyy' }}</p>
             </div>
           } @empty {
             <p class="col-span-full text-center py-6 text-slate-500">Aucun badge débloqué</p>

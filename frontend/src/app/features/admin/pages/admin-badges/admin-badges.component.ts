@@ -132,7 +132,7 @@ interface BadgeStats {
               }
 
               <div class="flex justify-end">
-                <button mat-flat-button color="primary" (click)="createBadge()" [disabled]="!newBadge.nom?.trim()">
+                <button mat-flat-button color="primary" (click)="createBadge()" [disabled]="!newBadge.nom.trim()">
                   <mat-icon>add</mat-icon> Créer le badge
                 </button>
               </div>
@@ -311,7 +311,7 @@ export class AdminBadgesComponent implements OnInit {
   }
 
   createBadge(): void {
-    if (!this.newBadge.nom?.trim()) return;
+    if (!this.newBadge.nom.trim()) return;
 
     const critere = this.criteriaType
       ? JSON.stringify({ type: this.criteriaType, valeur: this.criteriaValeur })

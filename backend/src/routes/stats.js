@@ -19,18 +19,41 @@ router.get('/latest', verifyJWT, loadRBACContext, requireRole('admin'), async (r
 router.post('/refresh', verifyJWT, loadRBACContext, requireRole('admin'), async (req, res) => {
   const connection = await getConnection();
   try {
-    const [users] = await connection.execute('SELECT COUNT(*) AS total FROM users WHERE deleted_at IS NULL');
-    const [courses] = await connection.execute('SELECT COUNT(*) AS total FROM courses WHERE deleted_at IS NULL');
+    const [users]       = await connection.execute('SELECT COUNT(*) AS total FROM users WHERE deleted_at IS NULL');
+    const [apprenants]  = await connection.execute(
+      `SELECT COUNT(DISTINCT ur.user_id) AS total
+       FROM user_role ur
+       INNER JOIN roles r ON r.id = ur.role_id
+       INNER JOIN users u ON u.id = ur.user_id
+       WHERE r.name = 'student' AND u.deleted_at IS NULL`
+    );
+    const [formateurs]  = await connection.execute(
+      `SELECT COUNT(DISTINCT ur.user_id) AS total
+       FROM user_role ur
+       INNER JOIN roles r ON r.id = ur.role_id
+       INNER JOIN users u ON u.id = ur.user_id
+       WHERE r.name = 'instructor' AND u.deleted_at IS NULL`
+    );
+    const [courses]     = await connection.execute('SELECT COUNT(*) AS total FROM courses WHERE deleted_at IS NULL');
     const [enrollments] = await connection.execute('SELECT COUNT(*) AS total FROM enrollments');
     const [completions] = await connection.execute("SELECT COUNT(*) AS total FROM enrollments WHERE status = 'completed'");
-    const [quizzes] = await connection.execute('SELECT COUNT(*) AS total FROM quiz_results');
+    const [quizzes]     = await connection.execute('SELECT COUNT(*) AS total FROM quiz_results');
 
     await connection.execute(
       `INSERT INTO stats_snapshots
        (snap_date, total_users, total_apprenants, total_formateurs, total_cours, total_inscriptions, total_completions, total_quizzes, created_at)
-       VALUES (CURDATE(), ?, 0, 0, ?, ?, ?, ?, NOW())
-       ON DUPLICATE KEY UPDATE total_users = VALUES(total_users), total_cours = VALUES(total_cours), total_inscriptions = VALUES(total_inscriptions), total_completions = VALUES(total_completions), total_quizzes = VALUES(total_quizzes), created_at = NOW()`,
-      [users[0].total, courses[0].total, enrollments[0].total, completions[0].total, quizzes[0].total]
+       VALUES (CURDATE(), ?, ?, ?, ?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE
+         total_users = VALUES(total_users),
+         total_apprenants = VALUES(total_apprenants),
+         total_formateurs = VALUES(total_formateurs),
+         total_cours = VALUES(total_cours),
+         total_inscriptions = VALUES(total_inscriptions),
+         total_completions = VALUES(total_completions),
+         total_quizzes = VALUES(total_quizzes),
+         created_at = NOW()`,
+      [users[0].total, apprenants[0].total, formateurs[0].total,
+       courses[0].total, enrollments[0].total, completions[0].total, quizzes[0].total]
     );
 
     await logAudit(req.user.id, 'REFRESH_STATS_SNAPSHOT', 'admin', 'stats_snapshots', null, req.ip, req.headers['user-agent']);

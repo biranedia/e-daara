@@ -44,7 +44,7 @@ type FormMode = 'create' | 'edit' | null;
             <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 !text-lg pointer-events-none">search</mat-icon>
             <input
               type="text"
-              [(ngModel)]="search"
+              [ngModel]="search()" (ngModelChange)="search.set($event)"
               placeholder="Rechercher par email, nom..."
               class="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-edaara-primary w-56 transition-colors"
             />
@@ -327,7 +327,7 @@ export class AdminUsersComponent implements OnInit {
   protected readonly cols    = ['user', 'roles', 'status', 'created', 'last_login', 'actions'];
   protected readonly users   = signal<AdminUserRow[]>([]);
   protected readonly loading = signal(true);
-  protected search = '';
+  protected readonly search = signal('');
 
   // État du panneau Create / Edit
   protected readonly formMode    = signal<FormMode>(null);
@@ -339,7 +339,7 @@ export class AdminUsersComponent implements OnInit {
   protected readonly deleteTarget = signal<AdminUserRow | null>(null);
 
   protected readonly filtered = computed(() => {
-    const q = this.search.trim().toLowerCase();
+    const q = this.search().trim().toLowerCase();
     const list = this.users();
     if (!q) return list;
     return list.filter(u =>

@@ -47,6 +47,7 @@ export interface Lesson {
   contenu?: string;
   type?: 'video' | 'pdf' | 'texte' | 'lien' | 'projet';
   url?: string | null;
+  thumbnail?: string | null;
   duree?: number;
   ordre: number;
   is_free?: boolean;
@@ -64,8 +65,9 @@ export interface Resource {
   cours_id?: number;
   titre: string;
   description?: string;
-  type: 'video' | 'pdf' | 'lien' | 'image' | 'audio' | 'mini_projet' | 'autre';
+  type: 'video' | 'pdf' | 'lien' | 'image' | 'audio' | 'mini_projet' | 'texte' | 'projet' | 'autre';
   url: string;
+  contenu?: string;
   /** Colonne réelle : resources.taille_ko */
   taille_ko?: number;
   /** Durée en secondes */

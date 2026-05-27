@@ -8,10 +8,17 @@ export interface Assessment {
   titre: string;
   description?: string;
   score_max?: number;
+  score_passage?: number;
   tentatives_max?: number;
   duree_minutes?: number;
+  ordre?: number;
+  status?: 'draft' | 'published';
   type?: 'quiz' | 'examen' | 'devoir';
   created_at?: string;
+  updated_at?: string;
+  /** Champs joints depuis le backend (LEFT JOIN courses / lessons) */
+  course_titre?: string;
+  lesson_titre?: string;
 }
 
 export interface Question {

@@ -39,12 +39,12 @@ import { AuditLog } from '@core/models';
       <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-end">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 min-w-[200px]">
           <mat-label>Rechercher</mat-label>
-          <input matInput [(ngModel)]="search" placeholder="Email, action, ressource..." />
+          <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Email, action, ressource..." />
         </mat-form-field>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Module</mat-label>
-          <mat-select [(ngModel)]="moduleFilter">
+          <mat-select [ngModel]="moduleFilter()" (ngModelChange)="moduleFilter.set($event)">
             <mat-option value="">Tous</mat-option>
             @for (m of modules(); track m) {
               <mat-option [value]="m">{{ m }}</mat-option>
@@ -54,7 +54,7 @@ import { AuditLog } from '@core/models';
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Statut</mat-label>
-          <mat-select [(ngModel)]="statusFilter">
+          <mat-select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
             <mat-option value="">Tous</mat-option>
             <mat-option value="success">Succès</mat-option>
             <mat-option value="failure">Échec</mat-option>
@@ -147,19 +147,21 @@ export class AdminAuditLogsComponent implements OnInit {
   protected readonly cols = ['date', 'user', 'action', 'module', 'resource', 'ip', 'status'];
   protected readonly logs = signal<AuditLog[]>([]);
   protected readonly loading = signal(true);
-  protected search = '';
-  protected moduleFilter = '';
-  protected statusFilter = '';
+  protected readonly search = signal('');
+  protected readonly moduleFilter = signal('');
+  protected readonly statusFilter = signal('');
 
   protected readonly modules = computed(() =>
     Array.from(new Set(this.logs().map((l) => l.module))).sort()
   );
 
   protected readonly filtered = computed(() => {
-    const q = this.search.trim().toLowerCase();
+    const q = this.search().trim().toLowerCase();
+    const mod = this.moduleFilter();
+    const sta = this.statusFilter();
     return this.logs().filter((l) => {
-      if (this.moduleFilter && l.module !== this.moduleFilter) return false;
-      if (this.statusFilter && l.statut !== this.statusFilter) return false;
+      if (mod && l.module !== mod) return false;
+      if (sta && l.statut !== sta) return false;
       if (!q) return true;
       return [l.email, l.action, l.module, l.resource_type, l.ip_address]
         .some((v) => (v ?? '').toLowerCase().includes(q));

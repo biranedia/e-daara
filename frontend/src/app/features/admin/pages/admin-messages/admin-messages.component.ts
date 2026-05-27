@@ -29,7 +29,7 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
   template: `
     <div class="space-y-4">
 
-      <!-- En-tête -->
+      <!-- En-tete -->
       <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 class="text-2xl font-bold text-edaara-dark flex items-center gap-2">
@@ -39,7 +39,7 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
           <p class="text-slate-500 text-sm">
             {{ allMessages().length }} message(s) sur la plateforme
             @if (unreadCount() > 0) {
-              · <span class="text-edaara-primary font-semibold">{{ unreadCount() }} non lu(s)</span>
+              &middot; <span class="text-edaara-primary font-semibold">{{ unreadCount() }} non lu(s)</span>
             }
           </p>
         </div>
@@ -48,7 +48,7 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
         </button>
       </header>
 
-      <!-- Formulaire de composition (slide) -->
+      <!-- Formulaire de composition -->
       @if (showCompose()) {
         <div class="bg-white rounded-xl shadow-sm border border-edaara-primary/30 p-5 space-y-3">
           <div class="flex items-center justify-between">
@@ -59,7 +59,7 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
             <mat-label>Destinataire</mat-label>
             <mat-icon matPrefix>person_search</mat-icon>
-            <input matInput type="text" placeholder="Tapez un nom ou email…"
+            <input matInput type="text" placeholder="Tapez un nom ou email..."
                    [formControl]="recipientCtrl" [matAutocomplete]="auto" />
             <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUser"
                               (optionSelected)="selectRecipient($event.option.value)">
@@ -100,7 +100,7 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
             <mat-label>Message</mat-label>
             <textarea matInput rows="4" [(ngModel)]="compose.corps"
-                      placeholder="Écrivez votre message…"></textarea>
+                      placeholder="Ecrivez votre message..."></textarea>
           </mat-form-field>
 
           <div class="flex justify-end gap-2">
@@ -117,12 +117,12 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
       <div class="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-3 flex gap-3 items-center">
         <mat-icon class="text-slate-400 flex-shrink-0">search</mat-icon>
         <input type="text"
-               [(ngModel)]="searchText"
-               (ngModelChange)="onSearch()"
-               placeholder="Rechercher par nom, email, sujet ou contenu…"
+               [value]="searchText()"
+               (input)="searchText.set($any($event.target).value)"
+               placeholder="Rechercher par nom, email, sujet ou contenu..."
                class="flex-1 outline-none text-slate-700 placeholder:text-slate-400 bg-transparent text-sm" />
-        @if (searchText) {
-          <button mat-icon-button class="!w-8 !h-8" (click)="searchText=''; onSearch()">
+        @if (searchText()) {
+          <button mat-icon-button class="!w-8 !h-8" (click)="searchText.set('')">
             <mat-icon class="!text-slate-400 !text-base">close</mat-icon>
           </button>
         }
@@ -154,10 +154,10 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
       @if (filtered().length === 0) {
         <div class="bg-white rounded-xl p-12 shadow-sm border border-slate-100 text-center">
           <mat-icon class="!text-5xl text-slate-300">
-            {{ searchText ? 'search_off' : 'mail_outline' }}
+            {{ searchText() ? 'search_off' : 'mail_outline' }}
           </mat-icon>
           <p class="text-slate-500 mt-3">
-            {{ searchText ? 'Aucun résultat pour "' + searchText + '"' : 'Aucun message' }}
+            {{ searchText() ? 'Aucun resultat pour "' + searchText() + '"' : 'Aucun message' }}
           </p>
         </div>
       } @else {
@@ -167,7 +167,7 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
                      [class.border-l-4]="!m.lu_at"
                      [class.border-l-edaara-primary]="!m.lu_at">
 
-              <!-- En-tête du message -->
+              <!-- En-tete du message -->
               <div class="p-4 cursor-pointer flex items-start gap-3" (click)="expand(m)">
 
                 <!-- Avatar -->
@@ -182,8 +182,8 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
                       <p class="font-semibold text-edaara-dark text-sm truncate">
                         <span class="text-slate-400 font-normal text-xs">De : </span>
                         {{ m.expediteur_prenom }} {{ m.expediteur_nom }}
-                        <span class="text-slate-300 mx-1">→</span>
-                        <span class="text-slate-400 font-normal text-xs">À : </span>
+                        <span class="text-slate-300 mx-1">&#8594;</span>
+                        <span class="text-slate-400 font-normal text-xs">A : </span>
                         {{ m.destinataire_prenom }} {{ m.destinataire_nom }}
                       </p>
                       @if (m.sujet) {
@@ -201,13 +201,13 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
                 </div>
               </div>
 
-              <!-- Corps développé -->
+              <!-- Corps developpe -->
               @if (expandedId() === m.id) {
                 <div class="px-4 pb-4 pt-0 border-t border-slate-100 bg-slate-50/50">
                   <p class="text-sm text-slate-700 whitespace-pre-wrap py-3">{{ m.corps }}</p>
                   <div class="flex gap-2 justify-end mt-2">
                     <button mat-stroked-button color="primary" (click)="replyTo(m); $event.stopPropagation()">
-                      <mat-icon>reply</mat-icon> Répondre
+                      <mat-icon>reply</mat-icon> Repondre
                     </button>
                     <button mat-stroked-button color="warn" (click)="remove(m); $event.stopPropagation()">
                       <mat-icon>delete</mat-icon> Supprimer
@@ -220,10 +220,10 @@ interface ContactUser { id: number; nom: string; prenom: string; email: string }
         </div>
       }
 
-      <!-- Compteur résultats -->
-      @if (searchText && filtered().length > 0) {
+      <!-- Compteur resultats -->
+      @if (searchText() && filtered().length > 0) {
         <p class="text-xs text-center text-slate-400">
-          {{ filtered().length }} résultat(s) pour "{{ searchText }}"
+          {{ filtered().length }} resultat(s) pour "{{ searchText() }}"
         </p>
       }
     </div>
@@ -239,42 +239,41 @@ export class AdminMessagesComponent implements OnInit {
   protected readonly suggestions = signal<ContactUser[]>([]);
   protected readonly recipient = signal<ContactUser | null>(null);
   protected readonly activeFilter = signal<FilterType>('all');
+  protected readonly searchText = signal('');
 
-  protected searchText = '';
   protected compose = { sujet: '', corps: '' };
-
   protected readonly recipientCtrl = new FormControl('');
 
   protected readonly filters: Array<{ value: FilterType; label: string; icon: string }> = [
-    { value: 'all',    label: 'Tous',      icon: 'all_inbox'         },
-    { value: 'unread', label: 'Non lus',   icon: 'mark_email_unread' },
-    { value: 'inbox',  label: 'Reçus',     icon: 'inbox'             },
-    { value: 'sent',   label: 'Envoyés',   icon: 'send'              }
+    { value: 'all',    label: 'Tous',    icon: 'all_inbox'         },
+    { value: 'unread', label: 'Non lus', icon: 'mark_email_unread' },
+    { value: 'inbox',  label: 'Recus',   icon: 'inbox'             },
+    { value: 'sent',   label: 'Envoyes', icon: 'send'              }
   ];
 
   protected readonly unreadCount = computed(
     () => this.allMessages().filter(m => !m.lu_at).length
   );
 
-  protected filtered(): Message[] {
+  protected readonly filtered = computed<Message[]>(() => {
     let list = this.allMessages();
     switch (this.activeFilter()) {
       case 'unread': list = list.filter(m => !m.lu_at); break;
       case 'inbox':  list = list.filter(m => m.destinataire_id != null); break;
       case 'sent':   list = list.filter(m => m.expediteur_id != null); break;
     }
-    const q = this.searchText.trim().toLowerCase();
+    const q = this.searchText().trim().toLowerCase();
     if (!q) return list;
     return list.filter(m =>
-      (m.expediteur_nom   ?? '').toLowerCase().includes(q) ||
-      (m.expediteur_prenom ?? '').toLowerCase().includes(q) ||
-      (m.destinataire_nom  ?? '').toLowerCase().includes(q) ||
+      (m.expediteur_nom      ?? '').toLowerCase().includes(q) ||
+      (m.expediteur_prenom   ?? '').toLowerCase().includes(q) ||
+      (m.destinataire_nom    ?? '').toLowerCase().includes(q) ||
       (m.destinataire_prenom ?? '').toLowerCase().includes(q) ||
       (m.sujet   ?? '').toLowerCase().includes(q) ||
       (m.corps   ?? '').toLowerCase().includes(q) ||
       (m.contenu ?? '').toLowerCase().includes(q)
     );
-  }
+  });
 
   ngOnInit(): void {
     this.load();
@@ -292,15 +291,10 @@ export class AdminMessagesComponent implements OnInit {
   }
 
   load(): void {
-    // box=all → l'admin voit tous les messages de la plateforme
+    // box=all => l'admin voit tous les messages de la plateforme
     this.social.listMessages('all' as 'inbox' | 'sent').subscribe({
       next: (res) => this.allMessages.set(res.data?.messages ?? [])
     });
-  }
-
-  onSearch(): void {
-    // La recherche est purement locale (instant) sur les messages déjà chargés
-    // Pour une plateforme à très grand volume, appeler le backend avec ?q=
   }
 
   expand(m: Message): void {
@@ -351,7 +345,7 @@ export class AdminMessagesComponent implements OnInit {
       contenu: this.compose.corps
     }).subscribe({
       next: () => {
-        this.snack.open(`Message envoyé à ${r.prenom} ${r.nom} ✓`, 'OK', { duration: 2500 });
+        this.snack.open(`Message envoye a ${r.prenom} ${r.nom}`, 'OK', { duration: 2500 });
         this.resetCompose();
         this.showCompose.set(false);
         this.load();
@@ -373,7 +367,7 @@ export class AdminMessagesComponent implements OnInit {
     this.social.deleteMessage(m.id).subscribe({
       next: () => {
         this.allMessages.update(list => list.filter(msg => msg.id !== m.id));
-        this.snack.open('Message supprimé', 'OK', { duration: 1500 });
+        this.snack.open('Message supprime', 'OK', { duration: 1500 });
       }
     });
   }

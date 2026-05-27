@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminService } from '@core/services/admin.service';
 import { CourseValidation } from '@core/models';
@@ -24,7 +27,7 @@ type ValidationFilter = 'all' | 'approved' | 'rejected' | 'auto' | 'manual';
   selector: 'app-admin-courses-pending',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatTooltipModule],
   template: `
     <div class="space-y-6">
       <!-- En-tête -->
@@ -38,9 +41,18 @@ type ValidationFilter = 'all' | 'approved' | 'rejected' | 'auto' | 'manual';
             Les cours sont validés automatiquement à la soumission selon 9 critères qualité.
           </p>
         </div>
-        <button mat-stroked-button (click)="load()">
-          <mat-icon>refresh</mat-icon> Actualiser
-        </button>
+        <div class="flex items-center gap-2">
+          <mat-form-field appearance="outline" class="w-64">
+            <mat-label>Rechercher</mat-label>
+            <input matInput placeholder="Titre, formateur, id..." [(ngModel)]="searchText" />
+            <button matSuffix mat-icon-button aria-label="Clear" *ngIf="searchText" (click)="searchText=''">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+          <button mat-stroked-button (click)="load()">
+            <mat-icon>refresh</mat-icon> Actualiser
+          </button>
+        </div>
       </header>
 
       <!-- Compteurs -->
@@ -181,14 +193,26 @@ export class AdminCoursesPendingComponent implements OnInit {
   protected filtered(): CourseValidation[] {
     const f = this.activeFilter();
     const all = this.validations();
+    const q = (this.searchText || '').trim().toLowerCase();
+    const byQuery = (v: CourseValidation) => {
+      if (!q) return true;
+      if (String(v.course_id).includes(q)) return true;
+      if ((v.course_titre || '').toLowerCase().includes(q)) return true;
+      if ((v.instructor_nom || '').toLowerCase().includes(q)) return true;
+      if ((v.instructor_prenom || '').toLowerCase().includes(q)) return true;
+      if ((v.commentaire || '').toLowerCase().includes(q)) return true;
+      return false;
+    };
     switch (f) {
-      case 'approved': return all.filter(v => v.decision === 'approved');
-      case 'rejected': return all.filter(v => v.decision === 'rejected');
-      case 'auto':     return all.filter(v => v.source === 'auto');
-      case 'manual':   return all.filter(v => v.source === 'manual');
-      default:         return all;
+      case 'approved': return all.filter(v => v.decision === 'approved' && byQuery(v));
+      case 'rejected': return all.filter(v => v.decision === 'rejected' && byQuery(v));
+      case 'auto':     return all.filter(v => v.source === 'auto' && byQuery(v));
+      case 'manual':   return all.filter(v => v.source === 'manual' && byQuery(v));
+      default:         return all.filter(byQuery);
     }
   }
+
+  protected searchText = '';
 
   protected approvedAutoCount(): number {
     return this.validations().filter(v => v.decision === 'approved' && v.source === 'auto').length;
