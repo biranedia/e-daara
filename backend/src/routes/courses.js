@@ -11,6 +11,80 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
+// Fonction utilitaire : évaluer et appliquer la validation automatique d'un cours
+async function evaluateAndApplyValidation(courseId, req) {
+  // Charge le cours et l'état du formateur
+  const course = await queryOne(
+    `SELECT c.*, u.status AS instructor_status
+       FROM courses c
+       INNER JOIN users u ON u.id = c.instructor_id
+       WHERE c.id = ? AND c.deleted_at IS NULL`,
+    [courseId]
+  );
+  if (!course) return { error: 'Cours non trouvé' };
+
+  // Récupérer sections
+  const sections = await query(
+    'SELECT id FROM sections WHERE course_id = ? AND deleted_at IS NULL',
+    [courseId]
+  );
+  const sectionIds = sections.map(s => s.id);
+
+  let totalLessons = 0;
+  let lessonsWithContent = 0;
+  if (sectionIds.length > 0) {
+    const placeholders = sectionIds.map(() => '?').join(',');
+    const lessons = await query(
+      `SELECT contenu, url FROM lessons WHERE section_id IN (${placeholders}) AND deleted_at IS NULL`,
+      sectionIds
+    );
+    totalLessons = lessons.length;
+    lessonsWithContent = lessons.filter(l =>
+      (l.contenu && l.contenu.trim().length > 0) ||
+      (l.url && l.url.trim().length > 0)
+    ).length;
+  }
+
+  const criteria = [
+    { code: 'titre', label: 'Titre suffisamment descriptif (≥ 5 caractères)', passed: !!(course.titre && course.titre.trim().length >= 5) },
+    { code: 'description', label: 'Description complète (≥ 50 caractères)', passed: !!(course.description && course.description.trim().length >= 50) },
+    { code: 'objectifs', label: 'Objectifs pédagogiques définis (≥ 30 caractères)', passed: !!(course.objectifs && course.objectifs.trim().length >= 30) },
+    { code: 'niveau', label: 'Niveau du cours défini', passed: !!(course.niveau && course.niveau.trim().length > 0) },
+    { code: 'thumbnail', label: 'Image de couverture présente', passed: !!(course.thumbnail && course.thumbnail.trim().length > 0) },
+    { code: 'sections', label: 'Au moins 1 section créée', passed: sectionIds.length >= 1 },
+    { code: 'lecons', label: 'Au moins 3 leçons au total', passed: totalLessons >= 3 },
+    { code: 'contenu', label: 'Au moins 1 leçon avec contenu ou lien', passed: lessonsWithContent >= 1 },
+    { code: 'formateur', label: 'Compte formateur actif', passed: course.instructor_status === 'active' }
+  ];
+
+  const failed = criteria.filter(c => !c.passed);
+  const approved = failed.length === 0;
+  const decision = approved ? 'approved' : 'rejected';
+  const newStatus = approved ? 'published' : 'draft';
+
+  // Mettre à jour le statut du cours
+  await query('UPDATE courses SET status = ?, updated_at = NOW() WHERE id = ?', [newStatus, courseId]);
+
+  const commentaire = approved
+    ? 'Validation automatique : tous les critères sont satisfaits.'
+    : `Validation automatique — refus. Critères non satisfaits :\n${failed.map(c => `• ${c.label}`).join('\n')}`;
+
+  // Insérer dans course_validations — admin_id si admin, sinon NULL
+  const adminId = (req && req.user && req.user.roles && req.user.roles.includes('admin')) ? req.user.id : null;
+  await query(
+    `INSERT INTO course_validations (course_id, admin_id, decision, commentaire, created_at)
+     VALUES (?, ?, ?, ?, NOW())`,
+    [courseId, adminId, decision, commentaire]
+  );
+
+  // Audit
+  const auditAction = approved ? 'AUTO_VALIDATE_COURSE_APPROVED' : 'AUTO_VALIDATE_COURSE_REJECTED';
+  if (req && req.user) {
+    await logAudit(req.user.id, auditAction, 'cours', 'courses', courseId, req.ip, req.headers['user-agent']);
+  }
+
+  return { approved, decision, criteria, failed_criteria: failed.map(c => c.label), newStatus, commentaire };
+}
 /**
  * @swagger
  * /courses:
@@ -126,10 +200,13 @@ router.post(
 
       await logAudit(req.user.id, 'CREATE_COURSE', 'cours', 'courses', courseId, req.ip, req.headers['user-agent']);
 
+      // Déclencher la validation automatique immédiatement après création
+      const validationResult = await evaluateAndApplyValidation(courseId, req);
+
       res.status(201).json({
         success: true,
         message: 'Cours créé avec succès',
-        data: { courseId }
+        data: { courseId, validation: validationResult }
       });
     } catch (error) {
       logger.error('Erreur création cours:', error);
@@ -207,7 +284,7 @@ router.put('/:id', verifyJWT, loadRBACContext, async (req, res) => {
       });
     }
 
-    const { titre, description, objectifs, prerequis, niveau, duree, category_id } = req.body;
+    const { titre, description, objectifs, prerequis, niveau, duree, category_id, thumbnail } = req.body;
     const updates = [];
     const params = [];
 
@@ -238,6 +315,10 @@ router.put('/:id', verifyJWT, loadRBACContext, async (req, res) => {
     if (category_id) {
       updates.push('category_id = ?');
       params.push(category_id);
+    }
+    if (thumbnail !== undefined) {
+      updates.push('thumbnail = ?');
+      params.push(thumbnail || null);
     }
 
     if (updates.length === 0) {
@@ -320,13 +401,27 @@ router.post('/:id/submit', verifyJWT, loadRBACContext, requireRole('instructor',
     if (sectionIds.length > 0) {
       const placeholders = sectionIds.map(() => '?').join(',');
       const lessons = await query(
-        `SELECT contenu, url FROM lessons WHERE section_id IN (${placeholders}) AND deleted_at IS NULL`,
+        `SELECT id, contenu, url FROM lessons WHERE section_id IN (${placeholders}) AND deleted_at IS NULL`,
         sectionIds
       );
       totalLessons = lessons.length;
+
+      // Récupérer les leçons qui ont des ressources liées (video, pdf, etc.)
+      const lessonIds = lessons.map(l => l.id);
+      let resourceLessonIds = [];
+      if (lessonIds.length > 0) {
+        const lp = lessonIds.map(() => '?').join(',');
+        const resRows = await query(
+          `SELECT DISTINCT lesson_id FROM resources WHERE lesson_id IN (${lp})`,
+          lessonIds
+        );
+        resourceLessonIds = resRows.map(r => r.lesson_id);
+      }
+
       lessonsWithContent = lessons.filter(l =>
         (l.contenu && l.contenu.trim().length > 0) ||
-        (l.url && l.url.trim().length > 0)
+        (l.url && l.url.trim().length > 0) ||
+        resourceLessonIds.includes(l.id)
       ).length;
     }
 
@@ -395,10 +490,12 @@ router.post('/:id/submit', verifyJWT, loadRBACContext, requireRole('instructor',
       ? 'Validation automatique : tous les critères sont satisfaits.'
       : `Validation automatique — refus. Critères non satisfaits :\n${failed.map(c => `• ${c.label}`).join('\n')}`;
 
+    // Enregistrer la décision dans course_validations
+    const adminId = req.user.roles && req.user.roles.includes('admin') ? req.user.id : null;
     await query(
       `INSERT INTO course_validations (course_id, admin_id, decision, commentaire, created_at)
-       VALUES (?, NULL, ?, ?, NOW())`,
-      [courseId, decision, commentaire]
+       VALUES (?, ?, ?, ?, NOW())`,
+      [courseId, adminId, decision, commentaire]
     );
 
     // ── 6. Audit ──────────────────────────────────────────────────────────────
@@ -451,6 +548,9 @@ router.delete('/:id', verifyJWT, loadRBACContext, async (req, res) => {
       });
     }
 
+    // Retirer le cours de tous les parcours avant suppression
+    await query('DELETE FROM path_course WHERE course_id = ?', [req.params.id]);
+
     await query(
       'UPDATE courses SET deleted_at = NOW() WHERE id = ?',
       [req.params.id]
@@ -467,6 +567,21 @@ router.delete('/:id', verifyJWT, loadRBACContext, async (req, res) => {
       success: false,
       message: 'Erreur lors de la suppression du cours'
     });
+  }
+});
+
+// GET /:id/paths — Parcours qui contiennent ce cours
+router.get('/:id/paths', verifyJWT, loadRBACContext, async (req, res) => {
+  try {
+    const paths = await query(
+      `SELECT p.id, p.titre FROM paths p
+       INNER JOIN path_course pc ON pc.path_id = p.id
+       WHERE pc.course_id = ? AND p.deleted_at IS NULL`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: { paths } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur' });
   }
 });
 

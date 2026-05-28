@@ -311,7 +311,7 @@ export class AdminBadgesComponent implements OnInit {
   }
 
   createBadge(): void {
-    if (!this.newBadge.nom?.trim()) return;
+    if (!this.newBadge.nom.trim()) return;
 
     const critere = this.criteriaType
       ? JSON.stringify({ type: this.criteriaType, valeur: this.criteriaValeur })

@@ -199,12 +199,28 @@ router.put('/:id', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'
       }
     }
 
-    if (updates.length === 0) {
+    const hasCourseIds = Array.isArray(req.body.course_ids);
+    if (updates.length === 0 && !hasCourseIds) {
       return res.status(400).json({ success: false, message: 'Aucune donnée à mettre à jour' });
     }
 
-    params.push(req.params.id);
-    await query(`UPDATE paths SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, params);
+    if (updates.length > 0) {
+      params.push(req.params.id);
+      await query(`UPDATE paths SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`, params);
+    }
+
+    // Synchroniser la liste des cours si course_ids fourni
+    if (Array.isArray(req.body.course_ids)) {
+      await query('DELETE FROM path_course WHERE path_id = ?', [req.params.id]);
+      for (let i = 0; i < req.body.course_ids.length; i++) {
+        if (req.body.course_ids[i]) {
+          await query(
+            'INSERT INTO path_course (path_id, course_id, ordre) VALUES (?, ?, ?)',
+            [req.params.id, req.body.course_ids[i], i + 1]
+          );
+        }
+      }
+    }
 
     await logAudit(req.user.id, 'UPDATE_PATH', 'cours', 'paths', req.params.id, req.ip, req.headers['user-agent']);
     res.json({ success: true, message: 'Parcours mis à jour avec succès' });
@@ -233,6 +249,48 @@ router.delete('/:id', verifyJWT, loadRBACContext, requireRole('instructor', 'adm
   } catch (error) {
     logger.error('Erreur suppression parcours:', error);
     res.status(500).json({ success: false, message: 'Erreur lors de la suppression du parcours' });
+  }
+});
+
+// POST /:id/courses — Ajouter un cours au parcours
+router.post('/:id/courses', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
+  try {
+    const path = await queryOne('SELECT id, instructor_id FROM paths WHERE id = ? AND deleted_at IS NULL', [req.params.id]);
+    if (!path) return res.status(404).json({ success: false, message: 'Parcours non trouvé' });
+    if (path.instructor_id !== req.user.id && !req.user.roles.includes('admin')) {
+      return res.status(403).json({ success: false, message: 'Accès refusé' });
+    }
+
+    const { course_id, ordre } = req.body;
+    if (!course_id) return res.status(400).json({ success: false, message: 'course_id requis' });
+
+    const maxOrdre = await queryOne('SELECT COALESCE(MAX(ordre), 0) AS mo FROM path_course WHERE path_id = ?', [req.params.id]);
+    const finalOrdre = ordre ?? ((maxOrdre?.mo ?? 0) + 1);
+
+    await query(
+      'INSERT INTO path_course (path_id, course_id, ordre) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE ordre = VALUES(ordre)',
+      [req.params.id, course_id, finalOrdre]
+    );
+    res.json({ success: true, message: 'Cours ajouté au parcours' });
+  } catch (error) {
+    logger.error('Erreur ajout cours au parcours:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /:id/courses/:courseId — Retirer un cours du parcours
+router.delete('/:id/courses/:courseId', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
+  try {
+    const path = await queryOne('SELECT id, instructor_id FROM paths WHERE id = ? AND deleted_at IS NULL', [req.params.id]);
+    if (!path) return res.status(404).json({ success: false, message: 'Parcours non trouvé' });
+    if (path.instructor_id !== req.user.id && !req.user.roles.includes('admin')) {
+      return res.status(403).json({ success: false, message: 'Accès refusé' });
+    }
+    await query('DELETE FROM path_course WHERE path_id = ? AND course_id = ?', [req.params.id, req.params.courseId]);
+    res.json({ success: true, message: 'Cours retiré du parcours' });
+  } catch (error) {
+    logger.error('Erreur retrait cours du parcours:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

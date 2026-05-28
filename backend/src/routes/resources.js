@@ -32,9 +32,16 @@ router.get('/', verifyJWT, loadRBACContext, async (req, res) => {
 router.post('/', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
   const connection = await getConnection();
   try {
-    const { lesson_id, type, titre, url, taille_ko, duree_sec, ordre, is_telechar } = req.body;
-    if (!lesson_id || !type || !titre || !url) {
-      return res.status(400).json({ success: false, message: 'lesson_id, type, titre et url requis' });
+    const { lesson_id, type, titre, url, contenu, taille_ko, duree_sec, ordre, is_telechar } = req.body;
+    if (!lesson_id || !type || !titre) {
+      return res.status(400).json({ success: false, message: 'lesson_id, type et titre requis' });
+    }
+    // For text resources require contenu instead of url
+    if (type === 'texte' && (!contenu || !contenu.trim())) {
+      return res.status(400).json({ success: false, message: 'contenu requis pour une ressource de type texte' });
+    }
+    if (type !== 'texte' && !url) {
+      return res.status(400).json({ success: false, message: 'url requis pour ce type de ressource' });
     }
 
     const lesson = await queryOne('SELECT id FROM lessons WHERE id = ?', [lesson_id]);
@@ -43,9 +50,9 @@ router.post('/', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'),
     }
 
     const [result] = await connection.execute(
-      `INSERT INTO resources (lesson_id, type, titre, url, taille_ko, duree_sec, ordre, is_telechar, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [lesson_id, type, titre, url, taille_ko || null, duree_sec || null, ordre || 0, is_telechar ? 1 : 0]
+      `INSERT INTO resources (lesson_id, type, titre, url, contenu, taille_ko, duree_sec, ordre, is_telechar, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [lesson_id, type, titre, url || '', contenu || null, taille_ko || null, duree_sec || null, ordre || 0, is_telechar ? 1 : 0]
     );
 
     await logAudit(req.user.id, 'CREATE_RESOURCE', 'cours', 'resources', result.insertId, req.ip, req.headers['user-agent']);

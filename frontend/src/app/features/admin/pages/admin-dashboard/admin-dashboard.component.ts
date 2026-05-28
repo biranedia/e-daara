@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChangeDetectionStrategy, Component, OnInit, inject, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -230,7 +230,7 @@ const C = 2 * Math.PI * 38; // SVG donut circumference (r=38)
               @for (u of filteredUsers(); track u.id) {
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 rounded-full bg-edaara-primary/10 text-edaara-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {{ (u.prenom[0] + u.nom[0]).toUpperCase() }}
+                    {{ (u.prenom.charAt(0) + u.nom.charAt(0)).toUpperCase() }}
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-edaara-dark truncate">{{ u.prenom }} {{ u.nom }}</p>

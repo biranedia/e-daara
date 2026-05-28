@@ -47,12 +47,12 @@ import { GdprRequest } from '@core/models';
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let r">
               <span class="px-2 py-1 rounded-full text-xs"
-                    [class]="statusClass((r.statut || r.status))">{{ (r.statut || r.status) }}</span>
+                    [class]="statusClass(r.statut)">{{ r.statut }}</span>
             </td>
           </ng-container>
           <ng-container matColumnDef="motif">
             <th mat-header-cell *matHeaderCellDef>Motif</th>
-            <td mat-cell *matCellDef="let r" class="text-sm text-slate-600">{{ r.detail || r.motif || '—' }}</td>
+            <td mat-cell *matCellDef="let r" class="text-sm text-slate-600">{{ r.detail || '—' }}</td>
           </ng-container>
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>

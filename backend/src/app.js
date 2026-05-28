@@ -14,6 +14,7 @@ const morgan = require('morgan');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+const path = require('path');
 const logger = require('./utils/logger');
 const { auditLogger } = require('./middlewares/rbac');
 
@@ -46,14 +47,26 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // ========================================
-// 2. MIDDLEWARES DE PARSING
+// 2. FICHIERS STATIQUES (avatars, médias uploadés)
+// ========================================
+
+// Helmet pose Cross-Origin-Resource-Policy: same-origin par défaut.
+// On le remplace par cross-origin uniquement pour /uploads afin que
+// le frontend (port 4200) puisse charger les images du backend (port 3000).
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
+
+// ========================================
+// 3. MIDDLEWARES DE PARSING (ancien §2 décalé)
 // ========================================
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // ========================================
-// 3. LOGGING
+// 4. LOGGING (ancien §3)
 // ========================================
 
 // Morgan - Logging des requêtes HTTP

@@ -94,7 +94,7 @@ router.get('/:id', verifyJWT, loadRBACContext, async (req, res) => {
 
 router.post('/', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'), async (req, res) => {
   try {
-    const { section_id, course_id, titre, description, contenu, duree, ordre, is_free, status } = req.body;
+    const { section_id, course_id, titre, type, description, contenu, url, thumbnail, duree, ordre, is_free, status } = req.body;
 
     if (!section_id || !course_id || !titre) {
       return res.status(400).json({ success: false, message: 'section_id, course_id et titre requis' });
@@ -113,9 +113,9 @@ router.post('/', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'),
       try {
         const [result] = await pool.execute(
           `INSERT INTO lessons
-           (section_id, course_id, titre, slug, description, contenu, duree, ordre, is_free, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [section_id, course_id, titre, finalSlug, toParam(description), toParam(contenu), toParam(duree), toParam(ordre), is_free ? 1 : 0, status || 'draft']
+           (section_id, course_id, titre, slug, type, description, contenu, url, thumbnail, duree, ordre, is_free, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          [section_id, course_id, titre, finalSlug, type || 'texte', toParam(description), toParam(contenu), toParam(url), toParam(thumbnail), toParam(duree), toParam(ordre), is_free ? 1 : 0, status || 'draft']
         );
         lessonId = result.insertId;
         break;
@@ -148,7 +148,7 @@ router.put('/:id', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'
       return res.status(404).json({ success: false, message: 'Leçon non trouvée' });
     }
 
-    const { titre, description, contenu, duree, ordre, is_free, status, section_id } = req.body;
+    const { titre, type, description, contenu, url, thumbnail, duree, ordre, is_free, status, section_id } = req.body;
     const updates = [];
     const params = [];
 
@@ -160,9 +160,21 @@ router.put('/:id', verifyJWT, loadRBACContext, requireRole('instructor', 'admin'
       updates.push('description = ?');
       params.push(toParam(description));
     }
+    if (type !== undefined) {
+      updates.push('type = ?');
+      params.push(type);
+    }
     if (contenu !== undefined) {
       updates.push('contenu = ?');
       params.push(toParam(contenu));
+    }
+    if (url !== undefined) {
+      updates.push('url = ?');
+      params.push(toParam(url));
+    }
+    if (thumbnail !== undefined) {
+      updates.push('thumbnail = ?');
+      params.push(toParam(thumbnail));
     }
     if (duree !== undefined) {
       updates.push('duree = ?');
