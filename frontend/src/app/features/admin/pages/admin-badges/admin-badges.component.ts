@@ -132,7 +132,7 @@ interface BadgeStats {
               }
 
               <div class="flex justify-end">
-                <button mat-flat-button color="primary" (click)="createBadge()" [disabled]="!newBadge.nom?.trim()">
+                <button mat-flat-button color="primary" (click)="createBadge()" [disabled]="!newBadge.nom.trim()">
                   <mat-icon>add</mat-icon> Créer le badge
                 </button>
               </div>
